@@ -23,6 +23,19 @@
   const excludeGenerated = document.getElementById('settingsExcludeGenerated');
   const excludeDependencies = document.getElementById('settingsExcludeDependencies');
   const flagUnsupported = document.getElementById('settingsFlagUnsupported');
+  const maxFileCount = document.getElementById('settingsMaxFileCount');
+  const maxFileSize = document.getElementById('settingsMaxFileSize');
+  const maxTotalSize = document.getElementById('settingsMaxTotalSize');
+
+  function mbToBytes(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? Math.round(number * 1000 * 1000) : null;
+  }
+
+  function bytesToMb(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? Math.round(number / 1000 / 1000) : '';
+  }
 
   let loaded = false;
 
@@ -75,6 +88,15 @@
     excludeGenerated.checked = settings.exclude_generated !== false;
     excludeDependencies.checked = settings.exclude_dependencies !== false;
     flagUnsupported.checked = settings.flag_unsupported !== false;
+    if (maxFileCount) {
+      maxFileCount.value = settings.max_file_count || 10000;
+    }
+    if (maxFileSize) {
+      maxFileSize.value = bytesToMb(settings.max_file_size) || 1;
+    }
+    if (maxTotalSize) {
+      maxTotalSize.value = bytesToMb(settings.max_total_size) || 200;
+    }
   }
 
   async function loadSettings() {
@@ -111,6 +133,10 @@
       exclude_generated: excludeGenerated.checked,
       exclude_dependencies: excludeDependencies.checked,
       flag_unsupported: flagUnsupported.checked,
+      max_file_count: maxFileCount && Number(maxFileCount.value) > 0 ?
+        Math.round(Number(maxFileCount.value)) : null,
+      max_file_size: maxFileSize ? mbToBytes(maxFileSize.value) : null,
+      max_total_size: maxTotalSize ? mbToBytes(maxTotalSize.value) : null,
     };
     try {
       const data = await CodeStoryAPI.updateSettings(payload);

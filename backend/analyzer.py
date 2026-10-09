@@ -10,6 +10,7 @@ files, and reports what was imported.
 from __future__ import annotations
 
 import io
+import os
 import posixpath
 import zipfile
 from collections import Counter
@@ -20,14 +21,24 @@ from typing import Iterable
 # Limits
 # --------------------------------------------------------------------------- #
 
-MAX_FILE_SIZE = 1_000_000          # 1 MB per individual source file
-MAX_TOTAL_SIZE = 20_000_000        # 20 MB of accepted source overall
-MAX_FILE_COUNT = 300               # maximum accepted files per project
+def _env_int(name: str, default: int) -> int:
+    """Read an integer limit from the environment, falling back to default."""
+    try:
+        value = int(os.environ.get(name, ""))
+        return value if value > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+MAX_FILE_SIZE = _env_int("CODESTORY_MAX_FILE_SIZE", 1_000_000)          # 1 MB per file
+MAX_TOTAL_SIZE = _env_int("CODESTORY_MAX_TOTAL_SIZE", 200_000_000)      # 200 MB of source
+MAX_FILE_COUNT = _env_int("CODESTORY_MAX_FILE_COUNT", 10_000)           # files per project
 MAX_PATH_LENGTH = 400              # maximum length of a stored path
 
-MAX_UPLOAD_SIZE = 25_000_000       # 25 MB raw .zip upload
-MAX_ZIP_ENTRIES = 2_000            # maximum entries inside a .zip
-MAX_UNCOMPRESSED_SIZE = 200_000_000  # zip-bomb guard (uncompressed bytes)
+MAX_UPLOAD_SIZE = _env_int("CODESTORY_MAX_UPLOAD_SIZE", 200_000_000)    # raw upload bytes
+MAX_ZIP_ENTRIES = _env_int("CODESTORY_MAX_ZIP_ENTRIES", 20_000)         # .zip entries
+MAX_UNCOMPRESSED_SIZE = _env_int(
+    "CODESTORY_MAX_UNCOMPRESSED_SIZE", 1_000_000_000)                   # zip-bomb guard
 
 # Analysis preferences that the backend can honour. Secrets are always
 # excluded and cannot be re-enabled.
@@ -211,7 +222,7 @@ EXCLUDED_SUFFIXES = {
 
 SKIPPED_CATEGORIES = (
     "secrets", "dependencies", "generated", "unsupported",
-    "binary", "too_large", "unsafe",
+    "binary", "too_large", "unsafe", "duplicates", "unreadable",
 )
 
 
@@ -329,6 +340,7 @@ def analyze_files(
     project_name: str,
     options: dict | None = None,
     with_content: bool = False,
+    preskipped: Iterable[tuple[str, str]] | None = None,
 ) -> dict:
     """Validate and describe a set of (path, bytes) source files.
 
@@ -344,6 +356,7 @@ def analyze_files(
 
     imported: list[dict] = []
     skipped: dict[str, list[str]] = {category: [] for category in SKIPPED_CATEGORIES}
+    seen_paths: set[str] = set()
     total_size = 0
 
     for raw_path, data in files:
@@ -351,6 +364,11 @@ def analyze_files(
         if path is None or len(path) > MAX_PATH_LENGTH:
             skipped["unsafe"].append(raw_path or "<unnamed>")
             continue
+
+        if path in seen_paths:
+            skipped["duplicates"].append(path)
+            continue
+        seen_paths.add(path)
 
         category = _exclusion_category(path, resolved)
         if category:
@@ -396,6 +414,17 @@ def analyze_files(
             item["content"] = text
         imported.append(item)
 
+    # preskipped is filled lazily by streaming producers (e.g. zip readers),
+    # so it can only be merged once ``files`` has been consumed.
+    for raw_path, category in preskipped or ():
+        path = _normalize_path(raw_path)
+        name = path or raw_path or "<unnamed>"
+        if name in seen_paths:
+            continue
+        seen_paths.add(name)
+        if category in skipped:
+            skipped[category].append(name)
+
     if not imported:
         raise ImportValidationError(
             "No supported source files were found. Supported types include "
@@ -437,37 +466,45 @@ def analyze_files(
     return result
 
 
-def analyze_zip(
-    data: bytes,
-    filename: str,
-    options: dict | None = None,
-    with_content: bool = False,
-) -> dict:
-    """Validate and analyze a raw .zip upload."""
-    if len(data) == 0:
-        raise ImportValidationError("The uploaded ZIP file is empty.")
-    if len(data) > MAX_UPLOAD_SIZE:
+class _SeekableWrapper:
+    """Give a spooled upload file the file-object API zipfile needs.
+
+    ``tempfile.SpooledTemporaryFile`` does not expose ``seekable`` /
+    ``readable`` before it rolls over to disk, which ``zipfile`` checks.
+    """
+
+    def __init__(self, raw) -> None:
+        self._raw = raw
+
+    def __getattr__(self, name):
+        return getattr(self._raw, name)
+
+    def seekable(self) -> bool:
+        return True
+
+    def readable(self) -> bool:
+        return True
+
+
+def _check_upload_size(size: int, what: str = "upload") -> None:
+    if size > MAX_UPLOAD_SIZE:
         raise ImportValidationError(
-            f"The ZIP is too large: the limit is {MAX_UPLOAD_SIZE // 1_000_000} MB.",
+            f"The {what} is too large: the limit is {MAX_UPLOAD_SIZE // 1_000_000} MB.",
             status_code=413,
         )
 
-    try:
-        archive = zipfile.ZipFile(io.BytesIO(data))
-    except zipfile.BadZipFile:
-        raise ImportValidationError("The uploaded file is not a valid ZIP archive.")
 
-    infos = archive.infolist()
-    if len(infos) > MAX_ZIP_ENTRIES:
-        raise ImportValidationError(
-            f"The ZIP contains too many entries: the limit is {MAX_ZIP_ENTRIES}.",
-            status_code=413,
-        )
-
-    files: list[tuple[str, bytes]] = []
+def _iter_zip_files(
+    archive: zipfile.ZipFile,
+    max_file_size: int,
+    preskipped: list[tuple[str, str]],
+) -> Iterable[tuple[str, bytes]]:
+    """Yield (name, bytes) entries lazily so large archives never sit fully
+    in memory. Entries that cannot be read or exceed the per-file limit are
+    not read at all; they are recorded under ``preskipped`` instead."""
     uncompressed = 0
     with archive:
-        for info in infos:
+        for info in archive.infolist():
             if info.is_dir():
                 continue
             uncompressed += info.file_size
@@ -476,15 +513,74 @@ def analyze_zip(
                     "The ZIP expands to too much data and was rejected.",
                     status_code=413,
                 )
+            if info.file_size > max_file_size:
+                # Larger than any accepted source file - never read it.
+                preskipped.append((info.filename, "too_large"))
+                continue
             try:
                 content = archive.read(info)
             except (RuntimeError, zipfile.BadZipFile, OSError):
                 # Encrypted or unreadable entry - skip rather than fail.
+                preskipped.append((info.filename, "unreadable"))
                 continue
-            files.append((info.filename, content))
+            yield (info.filename, content)
 
+
+def analyze_zip(
+    data,
+    filename: str,
+    options: dict | None = None,
+    with_content: bool = False,
+    max_file_size: int | None = None,
+) -> dict:
+    """Validate and analyze a .zip upload.
+
+    ``data`` may be raw bytes or a seekable binary file object (e.g. a spooled
+    upload). Entries are streamed one at a time so a large archive never loads
+    the whole project into memory at once.
+    """
+    resolved = resolve_options(options)
+    per_file_limit = max_file_size or resolved["max_file_size"]
+
+    if hasattr(data, "read"):
+        stream = data
+        if not callable(getattr(stream, "seekable", None)):
+            stream = _SeekableWrapper(stream)
+        stream.seek(0, os.SEEK_END)
+        size = stream.tell()
+        stream.seek(0)
+    else:
+        size = len(data)
+        stream = io.BytesIO(data)
+
+    if size == 0:
+        raise ImportValidationError("The uploaded ZIP file is empty.")
+    _check_upload_size(size, "ZIP")
+
+    try:
+        archive = zipfile.ZipFile(stream)
+    except zipfile.BadZipFile:
+        raise ImportValidationError("The uploaded file is not a valid ZIP archive.")
+
+    infos = archive.infolist()
+    if len(infos) > MAX_ZIP_ENTRIES:
+        archive.close()
+        raise ImportValidationError(
+            f"The ZIP contains too many entries: the limit is {MAX_ZIP_ENTRIES}.",
+            status_code=413,
+        )
+
+    file_names = [info.filename for info in infos if not info.is_dir()]
     project_name = _infer_project_name(
-        (_normalize_path(path) for path, _ in files),
+        (_normalize_path(path) for path in file_names),
         Path(filename or "project.zip").stem,
     )
-    return analyze_files(files, project_name, options=options, with_content=with_content)
+
+    preskipped: list[tuple[str, str]] = []
+    return analyze_files(
+        _iter_zip_files(archive, per_file_limit, preskipped),
+        project_name,
+        options=resolved,
+        with_content=with_content,
+        preskipped=preskipped,
+    )

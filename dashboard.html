@@ -1039,6 +1039,21 @@
             <span><strong>Report excluded files</strong><small>List skipped and unsupported files in the Issues
                 view.</small></span>
           </label>
+          <div class="settings-field-row">
+            <label class="settings-field">
+              <span>Max files per project</span>
+              <input class="workspace-input" type="number" id="settingsMaxFileCount" min="1" max="100000"
+                step="1" />
+            </label>
+            <label class="settings-field">
+              <span>Max file size (MB)</span>
+              <input class="workspace-input" type="number" id="settingsMaxFileSize" min="1" max="50" step="1" />
+            </label>
+            <label class="settings-field">
+              <span>Max total size (MB)</span>
+              <input class="workspace-input" type="number" id="settingsMaxTotalSize" min="1" max="2000" step="10" />
+            </label>
+          </div>
         </section>
 
         <section class="settings-card">

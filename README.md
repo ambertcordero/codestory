@@ -100,11 +100,20 @@ is git-ignored. Clear everything from **Settings → Stored data**, or with
 
 ## Validation and limits
 
-- Per file: **1 MB**; per project: **20 MB** and **300 files**.
-- ZIP upload: **25 MB**, max **2,000** entries, with a zip-bomb guard.
+- Per file: **1 MB**; per project: **200 MB** and **10,000 files**.
+- ZIP upload: **200 MB**, max **20,000** entries, with a zip-bomb guard.
+  Entries are streamed one at a time, so large archives never sit fully in
+  memory. Folder selections above ~250 files are packed into a ZIP in the
+  browser and uploaded as a single archive.
+- All limits are configurable: `CODESTORY_MAX_FILE_SIZE`,
+  `CODESTORY_MAX_TOTAL_SIZE`, `CODESTORY_MAX_FILE_COUNT`,
+  `CODESTORY_MAX_UPLOAD_SIZE`, `CODESTORY_MAX_ZIP_ENTRIES` and
+  `CODESTORY_MAX_UNCOMPRESSED_SIZE` environment variables, plus per-file /
+  per-total / per-count overrides in **Settings → Analysis preferences**.
 - Excluded automatically: secrets (`.env*`, `*.pem`, `*.key`, `id_rsa`, ...),
   dependency folders (`node_modules`, `vendor`, `.venv`, ...), generated files
-  (`dist`, `build`, `*.min.*`, lock files, ...), binary files and unsafe paths.
+  (`dist`, `build`, `*.min.*`, lock files, ...), binary files, duplicate paths
+  and unsafe paths.
 - The backend only reads and counts bytes; it never executes imported code.
 
 ## Folder structure

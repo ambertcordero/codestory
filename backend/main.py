@@ -27,8 +27,11 @@ import ollama
 import static_analysis
 import store
 import story as story_module
+import visuals
 from analyzer import (
     MAX_FILE_SIZE,
+    MAX_UPLOAD_SIZE,
+    MAX_ZIP_ENTRIES,
     SUPPORTED_EXTENSIONS,
     ImportValidationError,
     analyze_files,
@@ -64,6 +67,9 @@ class SettingsUpdate(BaseModel):
     exclude_generated: Optional[bool] = None
     exclude_dependencies: Optional[bool] = None
     flag_unsupported: Optional[bool] = None
+    max_file_size: Optional[int] = None
+    max_total_size: Optional[int] = None
+    max_file_count: Optional[int] = None
 
 
 def _describe_supported() -> str:
@@ -75,6 +81,9 @@ def _analysis_options() -> dict:
     return {
         "exclude_generated": settings.get("exclude_generated", True),
         "exclude_dependencies": settings.get("exclude_dependencies", True),
+        "max_file_size": settings.get("max_file_size"),
+        "max_total_size": settings.get("max_total_size"),
+        "max_file_count": settings.get("max_file_count"),
     }
 
 
@@ -169,10 +178,16 @@ def health() -> dict:
 
 @app.post("/api/import/zip")
 async def import_zip(file: UploadFile = File(...), source: str = Form("zip")) -> dict:
-    data = await file.read()
+    if file.size is not None and file.size > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"The ZIP is too large: the limit is {MAX_UPLOAD_SIZE // 1_000_000} MB.",
+        )
     try:
+        # The spooled upload file is seekable, so entries are streamed from it
+        # instead of copying the whole archive into memory first.
         result = analyze_zip(
-            data,
+            file.file,
             file.filename or "project.zip",
             options=_analysis_options(),
             with_content=True,
@@ -196,13 +211,22 @@ async def import_files(
     if not isinstance(path_list, list):
         raise HTTPException(status_code=400, detail="Invalid file path payload.")
 
+    if len(files) > MAX_ZIP_ENTRIES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Too many files in the upload: the limit is {MAX_ZIP_ENTRIES}.",
+        )
+
     collected: list[tuple[str, bytes]] = []
     total = 0
     for index, upload in enumerate(files):
         data = await upload.read()
         total += len(data)
-        if total > MAX_FILE_SIZE * 40:
-            raise HTTPException(status_code=413, detail="The upload is too large.")
+        if total > MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"The upload is too large: the limit is {MAX_UPLOAD_SIZE // 1_000_000} MB.",
+            )
         safe_path = path_list[index] if index < len(path_list) else upload.filename
         collected.append((safe_path or upload.filename or f"file-{index}", data))
 
@@ -235,7 +259,10 @@ async def import_snippet(snippet: Snippet) -> dict:
     if len(data) == 0:
         raise HTTPException(status_code=400, detail="The pasted snippet is empty.")
     if len(data) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="The snippet is too large (limit 1 MB).")
+        raise HTTPException(
+            status_code=413,
+            detail=f"The snippet is too large (limit {MAX_FILE_SIZE // 1_000_000} MB).",
+        )
 
     try:
         result = analyze_files(
@@ -347,6 +374,16 @@ def project_issues(project_id: str) -> dict:
         key: value for key, value in record.get("skipped", {}).items() if key != "unsupported"
     }
     return static_analysis.detect_issues(files, skipped)
+
+
+@app.get("/api/projects/{project_id}/visuals")
+def project_visuals(project_id: str) -> dict:
+    """Static diagram data (architecture, call graph, workflow) for the Story."""
+    record = store.get_project(project_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    files = store.read_project_files(project_id)
+    return visuals.build(record, files)
 
 
 # --------------------------------------------------------------------------- #

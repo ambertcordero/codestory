@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/pages/dashboard.css" />
     <link rel="stylesheet" href="css/pages/import.css" />
     <link rel="stylesheet" href="css/pages/workspace.css" />
+    <link rel="stylesheet" href="css/pages/story-visuals.css" />
 </head>
 
 <body class="showing-overview">
@@ -1038,6 +1039,21 @@
             <span><strong>Report excluded files</strong><small>List skipped and unsupported files in the Issues
                 view.</small></span>
           </label>
+          <div class="settings-field-row">
+            <label class="settings-field">
+              <span>Max files per project</span>
+              <input class="workspace-input" type="number" id="settingsMaxFileCount" min="1" max="100000"
+                step="1" />
+            </label>
+            <label class="settings-field">
+              <span>Max file size (MB)</span>
+              <input class="workspace-input" type="number" id="settingsMaxFileSize" min="1" max="50" step="1" />
+            </label>
+            <label class="settings-field">
+              <span>Max total size (MB)</span>
+              <input class="workspace-input" type="number" id="settingsMaxTotalSize" min="1" max="2000" step="10" />
+            </label>
+          </div>
         </section>
 
         <section class="settings-card">
@@ -1138,7 +1154,7 @@
                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <strong>Choose a ZIP file</strong>
-            <span class="import-dropzone-note">ZIP archive, up to 25 MB</span>
+            <span class="import-dropzone-note">ZIP archive, up to 200 MB</span>
           </label>
           <p class="import-filename" data-filename="zip" hidden></p>
           <button class="import-analyze" type="button" data-analyze="zip" disabled>Upload &amp; Analyze</button>
@@ -1228,10 +1244,12 @@
     <script src="js/components/store.js"></script>
     <script src="js/components/sidebar.js"></script>
     <script src="js/components/buttons.js"></script>
+    <script src="js/components/diagrams.js"></script>
     <script src="js/pages/dashboard.js"></script>
     <script src="js/pages/import.js"></script>
     <script src="js/pages/views.js"></script>
     <script src="js/pages/projects.js"></script>
+    <script src="js/pages/story-visuals.js"></script>
     <script src="js/pages/explorer.js"></script>
     <script src="js/pages/settings.js"></script>
     <script src="js/main.js"></script>

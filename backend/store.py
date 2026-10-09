@@ -34,6 +34,9 @@ DEFAULT_SETTINGS = {
     "exclude_generated": True,
     "exclude_dependencies": True,
     "flag_unsupported": True,
+    "max_file_size": 1_000_000,
+    "max_total_size": 200_000_000,
+    "max_file_count": 10_000,
 }
 
 

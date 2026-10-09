@@ -24,6 +24,8 @@
   let currentId = null;
   let activeTab = 'story';
   let activeStory = null;
+  let activeVisuals = null;
+  const Visuals = window.CodeStoryVisuals || null;
   let activeChapterIndex = 0;
 
   const OLLAMA_HELP =
@@ -99,11 +101,12 @@
     const meta =
       '<p class="story-doc-meta">Generated ' + e(CodeStoryUI.formatDate(story.generated_at)) +
       ' with <code>' + e(story.model || 'local model') + '</code></p>';
+    const guide = Visuals ? Visuals.renderGuide(activeVisuals) : '';
 
     if (!structured) {
       setContent('story',
         '<article class="story-doc">' + meta +
-          (story.note ? '<p class="workspace-note">' + e(story.note) + '</p>' : '') +
+          (story.note ? '<p class="workspace-note">' + e(story.note) + '</p>' : '') + guide +
           CodeStoryUI.renderMarkdown(story.text || '') +
           '<div class="story-doc-actions"><button class="workspace-btn" type="button" data-story="regenerate">Regenerate story</button></div>' +
         '</article>');
@@ -125,14 +128,19 @@
       '" aria-current="' + (index === activeChapterIndex ? 'step' : 'false') + '"></button>'
     ).join('');
     const evidenceHtml = evidence.length
-      ? '<section class="story-evidence"><h3>Source evidence</h3><div class="story-evidence-list">' +
-        evidence.map((item) => {
-          const location = e(item.file || 'Source file') + (Number.isInteger(item.line) && item.line > 0 ? ':' + item.line : '');
-          return '<article class="story-evidence-card"><p class="story-evidence-location"><code>' + location +
-            (item.symbol ? ' · ' + e(item.symbol) : '') + '</code></p>' +
-            '<pre class="story-code"><code>' + e(item.snippet || '') + '</code></pre></article>';
-        }).join('') + '</div></section>'
+      ? (Visuals
+        ? '<section class="story-evidence story-code-illustration"><h3>Source evidence</h3>' +
+          Visuals.evidencePanels(chapter, activeVisuals) + '</section>'
+        : '<section class="story-evidence"><h3>Source evidence</h3><div class="story-evidence-list">' +
+          evidence.map((item) => {
+            const location = e(item.file || 'Source file') + (Number.isInteger(item.line) && item.line > 0 ? ':' + item.line : '');
+            return '<article class="story-evidence-card"><p class="story-evidence-location"><code>' + location +
+              (item.symbol ? ' · ' + e(item.symbol) : '') + '</code></p>' +
+              '<pre class="story-code"><code>' + e(item.snippet || '') + '</code></pre></article>';
+          }).join('') + '</div></section>')
       : '';
+    const chapterPlan = Visuals ? Visuals.planChapters(story, activeVisuals)[activeChapterIndex] : null;
+    const chapterVisual = Visuals ? Visuals.renderChapterVisual(chapterPlan, story, activeVisuals) : '';
     const fileEdgesHtml = verifiedFileEdges.length
       ? '<section class="story-flow" aria-label="Verified source file relationships"><h3>Verified source references</h3>' +
         '<p>These file links were found in the project’s import and include statements.</p>' +
@@ -167,7 +175,7 @@
     const issueCount = Array.isArray(story.verified_issues) ? story.verified_issues.length : 0;
 
     setContent('story',
-      '<article class="story-doc is-structured">' + meta + overview +
+      '<article class="story-doc is-structured">' + meta + overview + guide +
         '<div class="story-progress" aria-label="Story chapter progress">' +
           '<div class="story-progress-copy"><strong>Chapter ' + (activeChapterIndex + 1) + ' of ' + chapters.length +
           '</strong><span>' + Math.round(((activeChapterIndex + 1) / chapters.length) * 100) + '% complete</span></div>' +
@@ -180,8 +188,11 @@
         '<section class="story-chapter">' +
           '<p class="story-chapter-eyebrow">Chapter ' + (activeChapterIndex + 1) + '</p>' +
           '<h2>' + e(chapter.title || 'Untitled chapter') + '</h2>' +
-          CodeStoryUI.renderMarkdown(chapter.narrative || '') +
-          howItWorks + whyItMatters + sourceFilesHtml + evidenceHtml + fileEdgesHtml + relationshipsHtml +
+          '<div class="story-chapter-layout' + (evidenceHtml ? ' has-code' : '') + '">' +
+            '<div class="story-chapter-text">' + CodeStoryUI.renderMarkdown(chapter.narrative || '') + howItWorks + whyItMatters + '</div>' +
+            evidenceHtml +
+          '</div>' +
+          chapterVisual + sourceFilesHtml + fileEdgesHtml + relationshipsHtml +
         '</section>' +
         '<div class="story-chapter-navigation">' +
           '<button class="workspace-btn" type="button" data-story-nav="previous"' +
@@ -198,13 +209,21 @@
       '</article>');
   }
 
+  function loadVisuals(project) {
+    if (!CodeStoryAPI.visuals) return Promise.resolve(null);
+    return CodeStoryAPI.visuals(project.id).catch((error) => ({ error: error.message }));
+  }
+
   async function loadStory(project) {
     setStatus('story', 'loading', '<h3>Loading story...</h3>');
     setContent('story', '');
     activeStory = null;
+    activeVisuals = null;
     activeChapterIndex = 0;
     try {
-      const data = await CodeStoryAPI.getStory(project.id);
+      const results = await Promise.all([CodeStoryAPI.getStory(project.id), loadVisuals(project)]);
+      const data = results[0];
+      activeVisuals = results[1];
       if (data.available && data.story && data.story.text) {
         activeStory = data.story;
         setStatus('story', null);
@@ -232,7 +251,9 @@
     activeStory = null;
     activeChapterIndex = 0;
     try {
-      const data = await CodeStoryAPI.createStory(project.id);
+      const results = await Promise.all([CodeStoryAPI.createStory(project.id), loadVisuals(project)]);
+      const data = results[0];
+      activeVisuals = results[1];
       const story = data.story || {};
       activeStory = story;
       setStatus('story', null);
@@ -768,6 +789,7 @@
   });
 
   page.addEventListener('click', (event) => {
+    if (Visuals && Visuals.handleClick(event, activeVisuals)) return;
     const storyButton = event.target.closest('[data-story]');
     if (storyButton) generateStory();
     const chapterButton = event.target.closest('[data-story-nav]');
@@ -785,6 +807,18 @@
     const explorerTabButton = event.target.closest('[data-explorer-tab]');
     if (explorerTabButton) setTab(explorerTabButton.getAttribute('data-explorer-tab'));
   });
+
+  if (Visuals) {
+    page.addEventListener('keydown', (event) => { Visuals.handleKeydown(event, activeVisuals); });
+    page.addEventListener('toggle', Visuals.handleToggle, true);
+  }
+
+  if (window.matchMedia) {
+    const narrowQuery = window.matchMedia('(max-width: 720px)');
+    const rerender = () => { if (activeStory && activeStory.text) renderStoryDocument(activeStory); };
+    if (narrowQuery.addEventListener) narrowQuery.addEventListener('change', rerender);
+    else if (narrowQuery.addListener) narrowQuery.addListener(rerender);
+  }
 
   function updateHeader() {
     const project = currentProject();

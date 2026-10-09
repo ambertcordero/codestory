@@ -600,10 +600,15 @@ def generate(record: dict, files: list[dict]) -> dict:
 
     prompt = build_prompt(record, files, relationships, issues)
     result = ollama.generate(prompt, response_format=STORY_RESPONSE_SCHEMA)
+    if not result.get("ok") and (result.get("error") or "").startswith("Ollama HTTP"):
+        # Ollama before 0.5 only accepts format="json", not a JSON schema.
+        result = ollama.generate(prompt, response_format="json")
     if not result.get("ok"):
         raise StoryError(result.get("error") or "The local AI model is not available.")
 
     raw_text = (result.get("text") or "").strip()
+    if not raw_text:
+        raise StoryError("The local AI model returned an empty response. Try generating the story again.")
     model = result.get("model")
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 

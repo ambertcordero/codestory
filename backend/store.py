@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import posixpath
+import re
 import shutil
 import uuid
 from datetime import datetime, timezone
@@ -31,6 +32,7 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 DEFAULT_SETTINGS = {
     "ollama_host": "http://127.0.0.1:11434",
     "ollama_model": "qwen2.5-coder:3b",
+    "image_model": "",
     "exclude_generated": True,
     "exclude_dependencies": True,
     "flag_unsupported": True,
@@ -238,6 +240,14 @@ def load_story(project_id: str) -> dict | None:
 def save_story(project_id: str, story: dict) -> dict:
     _write_json(STORIES_DIR / f"{project_id}.json", story)
     return story
+
+
+def story_image_path(project_id: str, chapter_id: str) -> Path:
+    """On-disk location of a chapter illustration PNG."""
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", chapter_id or "chapter")[:80] or "chapter"
+    directory = STORIES_DIR / project_id / "images"
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / f"{safe}.png"
 
 
 def clear_all() -> None:

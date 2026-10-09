@@ -8,6 +8,7 @@ needed). Run from the backend directory:
 
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -169,6 +170,94 @@ class OllamaStatusTest(unittest.TestCase):
         status = self._status_with_models(
             ["qwen2.5-coder:3b"], "qwen2.5-coder")
         self.assertFalse(status["model_available"])
+
+
+class DynamicChapterTest(unittest.TestCase):
+    def test_model_can_return_more_than_eight_chapters(self):
+        chapters = ",".join(
+            '{"id": "c%d", "title": "Ch%d", "narrative": "N%d.",'
+            ' "how_it_works": "", "why_it_matters": "",'
+            ' "source_files": ["index.js"], "evidence": [], "relationships": []}'
+            % (i, i, i) for i in range(1, 13)
+        )
+        payload = '{"title": "T", "overview": "O.", "chapters": [' + chapters + ']}'
+        with _FakeOllama([_ok(payload)]):
+            result = story.generate(RECORD, FILES)
+        self.assertTrue(result["structured"])
+        self.assertEqual(len(result["chapters"]), 12)
+        self.assertFalse(result["coverage"]["incremental"])
+        self.assertEqual(result["coverage"]["files_total"], len(FILES))
+
+    def test_incremental_path_generates_per_chapter(self):
+        many = [
+            {"path": f"mod{i}.js", "language": "JavaScript", "category": "Web",
+             "size": 2000, "lines": 60,
+             "content": f"function f{i}() {{ return {i}; }}\n" * 60}
+            for i in range(40)
+        ]
+        outline = json.dumps({
+            "title": "Big", "overview": "O.",
+            "chapters": [
+                {"id": "c1", "title": "One", "summary": "S1.", "source_files": ["mod1.js"]},
+                {"id": "c2", "title": "Two", "summary": "S2.", "source_files": ["mod2.js"]},
+            ],
+        })
+        detail = json.dumps({
+            "narrative": "Detail.", "how_it_works": "H.", "why_it_matters": "W.",
+            "evidence": [], "relationships": [],
+        })
+        with _FakeOllama([_ok(outline), _ok(detail), _ok(detail)]) as fake:
+            result = story.generate(RECORD, many)
+        self.assertTrue(result["structured"])
+        self.assertTrue(result["coverage"]["incremental"])
+        self.assertGreaterEqual(len(fake.formats), 3)
+        self.assertEqual(len(result["chapters"]), 2)
+        self.assertEqual(result["chapters"][0]["title"], "One")
+
+
+class ImagesTest(unittest.TestCase):
+    def test_chapter_prompt_contains_title_and_narrative(self):
+        import images
+        prompt = images.chapter_prompt(
+            {"name": "POS"}, {"title": "The Cart", "narrative": "Items are added."})
+        self.assertIn("The Cart", prompt)
+        self.assertIn("Items are added", prompt)
+        self.assertIn("POS", prompt)
+
+    def test_generate_reports_missing_model(self):
+        import images, store
+        real = store.load_settings
+        try:
+            store.load_settings = lambda: {**real(), "image_model": ""}
+            result = images.generate("a prompt")
+        finally:
+            store.load_settings = real
+        self.assertFalse(result["ok"])
+        self.assertIn("image model", result["error"])
+
+    def test_generate_decodes_b64_image(self):
+        import base64 as b64
+        import images
+        import urllib.request
+        payload = json.dumps({"data": [{"b64_json": b64.b64encode(b"PNG").decode()}]}).encode()
+
+        class _Resp:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return payload
+
+        import store
+        real_urlopen = urllib.request.urlopen
+        real_settings = store.load_settings
+        try:
+            urllib.request.urlopen = lambda *a, **k: _Resp()
+            store.load_settings = lambda: {**real_settings(), "image_model": "img:1"}
+            result = images.generate("a prompt")
+        finally:
+            urllib.request.urlopen = real_urlopen
+            store.load_settings = real_settings
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["png"], b"PNG")
 
 
 class ParseResponseTest(unittest.TestCase):

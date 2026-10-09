@@ -29,7 +29,9 @@ import ollama
 import static_analysis
 import visuals
 
-MAX_CHAPTERS = 8
+# Safety bound only: chapter count should come from the project, not a
+# fixed limit. This just guards against a runaway model response.
+SAFETY_CHAPTER_CAP = 40
 MAX_EVIDENCE_PER_CHAPTER = 4
 MAX_RELATIONSHIPS_PER_CHAPTER = 6
 MAX_SYMBOLS_PER_FILE = 24
@@ -37,8 +39,9 @@ MAX_VERIFIED_ISSUES = 12
 SNIPPET_MAX_LINES = 14
 SNIPPET_MAX_CHARS = 1400
 
-PROMPT_SOURCE_BUDGET = 18_000
+PROMPT_SOURCE_BUDGET = 40_000
 PROMPT_FILE_SNIPPET_CHARS = 3_500
+CHAPTER_SOURCE_BUDGET = 24_000
 
 STORY_RESPONSE_SCHEMA = {
     "type": "object",
@@ -47,8 +50,7 @@ STORY_RESPONSE_SCHEMA = {
         "overview": {"type": "string"},
         "chapters": {
             "type": "array",
-            "minItems": 4,
-            "maxItems": MAX_CHAPTERS,
+            "minItems": 1,
             "items": {
                 "type": "object",
                 "properties": {
@@ -94,6 +96,70 @@ STORY_RESPONSE_SCHEMA = {
         },
     },
     "required": ["title", "overview", "chapters"],
+    "additionalProperties": False,
+}
+
+# Incremental pass for projects whose full source does not fit one prompt:
+# an outline first, then one detail request per chapter.
+OUTLINE_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "overview": {"type": "string"},
+        "chapters": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "source_files": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["id", "title", "summary", "source_files"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["title", "overview", "chapters"],
+    "additionalProperties": False,
+}
+
+CHAPTER_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "narrative": {"type": "string"},
+        "how_it_works": {"type": "string"},
+        "why_it_matters": {"type": "string"},
+        "evidence": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "file": {"type": "string"},
+                    "symbol": {"type": "string"},
+                    "snippet": {"type": "string"},
+                },
+                "required": ["file", "symbol", "snippet"],
+                "additionalProperties": False,
+            },
+        },
+        "relationships": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "from": {"type": "string"},
+                    "to": {"type": "string"},
+                    "description": {"type": "string"},
+                },
+                "required": ["from", "to", "description"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["narrative", "how_it_works", "why_it_matters", "evidence", "relationships"],
     "additionalProperties": False,
 }
 
@@ -268,7 +334,9 @@ def build_prompt(record: dict, files: list[dict], relationships: list[dict], iss
         "  ]\n"
         "}\n\n"
         "Rules:\n"
-        "- Create between 4 and 8 chapters that follow the real structure of this project.\n"
+        "- Create as many chapters as the project actually needs to explain it end to "
+        "end. A small app may need 4-6; a larger system needs more. Do not pad with "
+        "filler and do not merge unrelated concerns just to shorten the list.\n"
         "- Include one final chapter about verified issues and possible improvements.\n"
         "- Every file you mention MUST appear in the file list below.\n"
         "- Every symbol you mention SHOULD appear in the symbol list for that file.\n"
@@ -289,6 +357,7 @@ def build_prompt(record: dict, files: list[dict], relationships: list[dict], iss
 
     budget = PROMPT_SOURCE_BUDGET
     blocks: list[str] = []
+    shown: set[str] = set()
     for item in files:
         snippet = item.get("content", "")
         if len(snippet) > PROMPT_FILE_SNIPPET_CHARS:
@@ -298,7 +367,97 @@ def build_prompt(record: dict, files: list[dict], relationships: list[dict], iss
             break
         budget -= len(block)
         blocks.append(block)
+        shown.add(item["path"])
+    return header + "\n".join(blocks), shown
+
+
+def _chapter_prompt(record: dict, outline_chapter: dict, chapter_files: list[dict], relationships: list[dict]) -> str:
+    """Prompt for one chapter of an incrementally generated story."""
+    catalogue = []
+    for item in chapter_files:
+        symbols = extract_symbols(item.get("content", ""), item.get("language", ""))
+        symbol_text = ", ".join(f"{symbol['name']} (line {symbol['line']})" for symbol in symbols) or "none detected"
+        catalogue.append(f"- {item['path']} ({item.get('language', 'file')}): {symbol_text}")
+
+    header = (
+        "You are a technical writer explaining a real codebase to a developer.\n"
+        "Write ONE chapter of a larger story. Explain ONLY what the source code below "
+        "actually shows. Never invent files, symbols or relationships.\n\n"
+        "Return a single JSON object and NOTHING else with this shape:\n"
+        "{\n"
+        '  "narrative": "what this part of the system does and why it matters",\n'
+        '  "how_it_works": "the flow between components",\n'
+        '  "why_it_matters": "the role of this part",\n'
+        '  "evidence": [{"file": "path/from/the/list", "symbol": "existing symbol name or empty", "snippet": "copy a few real lines verbatim"}],\n'
+        '  "relationships": [{"from": "file or symbol", "to": "file or symbol", "description": "what the link means"}]\n'
+        "}\n\n"
+        "Rules:\n"
+        "- Every file you mention MUST appear in the file list below.\n"
+        "- Copy evidence snippets VERBATIM from the source shown.\n"
+        "- Keep the JSON valid: double quotes, no trailing commas, no comments.\n\n"
+        f"Project name: {record.get('name', 'Untitled')}\n"
+        f"Chapter title: {outline_chapter.get('title', '')}\n"
+        f"Chapter summary: {outline_chapter.get('summary', '')}\n\n"
+        "Chapter file list and detected symbols:\n"
+        + "\n".join(catalogue) + "\n\n"
+        "Verified cross-file references involving these files:\n"
+        + ("\n".join(
+            f"- {edge.get('from')} references {edge.get('to')}" for edge in relationships
+        ) or "- none detected") + "\n\n"
+        "Source code:\n"
+    )
+
+    budget = CHAPTER_SOURCE_BUDGET
+    blocks: list[str] = []
+    for item in chapter_files:
+        snippet = item.get("content", "")
+        if len(snippet) > PROMPT_FILE_SNIPPET_CHARS:
+            snippet = snippet[:PROMPT_FILE_SNIPPET_CHARS] + "\n... (truncated)"
+        block = f"### File: {item['path']}\n```\n{snippet}\n```\n"
+        if budget - len(block) < 0:
+            break
+        budget -= len(block)
+        blocks.append(block)
     return header + "\n".join(blocks)
+
+
+def _outline_prompt(record: dict, files: list[dict], relationships: list[dict], issues: list[dict]) -> str:
+    """Prompt that asks the model to plan the chapter structure from the catalogue."""
+    catalogue = []
+    for item in files:
+        symbols = extract_symbols(item.get("content", ""), item.get("language", ""))
+        symbol_text = ", ".join(symbol["name"] for symbol in symbols[:10]) or "none detected"
+        catalogue.append(
+            f"- {item['path']} ({item.get('language', 'file')}, "
+            f"{len(item.get('content', '').splitlines())} lines): {symbol_text}"
+        )
+    reference_lines = [
+        f"- {edge.get('from')} references {edge.get('to')}" for edge in relationships
+    ] or ["- no cross-file references detected"]
+    return (
+        "You are a technical writer planning a chapter-based story of a real codebase.\n"
+        "The project is too large to show every file in full, so use the complete file "
+        "list and symbol catalogue below to decide which chapters the story needs.\n\n"
+        "Return a single JSON object and NOTHING else with this shape:\n"
+        "{\n"
+        '  "title": "project title",\n'
+        '  "overview": "one short paragraph grounded in the catalogue",\n'
+        '  "chapters": [{"id": "chapter-1", "title": "Chapter title", "summary": "what this chapter will explain", "source_files": ["paths/from/the/list"]}]\n'
+        "}\n\n"
+        "Rules:\n"
+        "- Choose as many chapters as the project needs to explain it end to end: "
+        "purpose, entry points, key components, workflows, business rules, "
+        "integrations, and a final chapter on verified issues and improvements.\n"
+        "- Every source_files entry MUST come from the file list below.\n"
+        "- Do not invent files, modules or features that are not in the catalogue.\n"
+        "- Keep the JSON valid: double quotes, no trailing commas, no comments.\n\n"
+        f"Project name: {record.get('name', 'Untitled')}\n"
+        f"Files: {len(files)}\n\n"
+        "Complete file list and detected symbols:\n"
+        + "\n".join(catalogue) + "\n\n"
+        "Verified cross-file references (static analysis):\n"
+        + "\n".join(reference_lines) + "\n"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -546,7 +705,7 @@ def ground_story(parsed: dict, record: dict, files: list[dict], issues: list[dic
             "evidence": evidence,
             "relationships": rels,
         })
-        if len(chapters) >= MAX_CHAPTERS:
+        if len(chapters) >= SAFETY_CHAPTER_CAP:
             break
 
     if not chapters:
@@ -593,13 +752,9 @@ def to_markdown(title: str, overview: str, chapters: list[dict]) -> str:
 # Orchestration
 # --------------------------------------------------------------------------- #
 
-def generate(record: dict, files: list[dict]) -> dict:
-    """Generate a grounded, structured story with the configured local model."""
-    relationships = static_analysis.build_map(files).get("edges", [])
-    issues = static_analysis.detect_issues(files, record.get("skipped") or {}).get("findings", [])
-
-    prompt = build_prompt(record, files, relationships, issues)
-    result = ollama.generate(prompt, response_format=STORY_RESPONSE_SCHEMA)
+def _call_model(prompt: str, schema: dict) -> dict:
+    """One model call returning parsed JSON. Raises StoryError on failure."""
+    result = ollama.generate(prompt, response_format=schema)
     if (
         not result.get("ok")
         and result.get("status") == 400
@@ -613,12 +768,101 @@ def generate(record: dict, files: list[dict]) -> dict:
     raw_text = (result.get("text") or "").strip()
     if not raw_text:
         raise StoryError("The local AI model returned an empty response. Try generating the story again.")
-    model = result.get("model")
-    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return {"model": result.get("model"), "text": raw_text, "parsed": parse_response(raw_text)}
 
-    parsed = parse_response(raw_text)
+
+def _generate_incremental(
+    record: dict, files: list[dict], relationships: list[dict], issues: list[dict]
+) -> dict | None:
+    """Large-project path: outline first, then one grounded detail call per chapter."""
+    outline_response = _call_model(
+        _outline_prompt(record, files, relationships, issues), OUTLINE_RESPONSE_SCHEMA
+    )
+    outline = outline_response["parsed"]
+    if not isinstance(outline, dict):
+        return None
+    raw_chapters = outline.get("chapters")
+    if not isinstance(raw_chapters, list) or not raw_chapters:
+        return None
+
+    by_path = {item["path"]: item for item in files}
+    grounding = _Grounding(files)
+    chapters: list[dict] = []
+    for index, entry in enumerate(raw_chapters[:SAFETY_CHAPTER_CAP]):
+        if not isinstance(entry, dict) or not _as_text(entry.get("title")).strip():
+            continue
+        wanted = [
+            by_path[path] for name in entry.get("source_files") or []
+            for path in [grounding.resolve_file(name)] if path
+        ]
+        chapter_files = wanted or files[:5]
+        chapter_paths = {item["path"] for item in chapter_files}
+        chapter_edges = [
+            edge for edge in relationships
+            if edge.get("from") in chapter_paths or edge.get("to") in chapter_paths
+        ]
+        try:
+            detail = _call_model(
+                _chapter_prompt(record, entry, chapter_files, chapter_edges),
+                CHAPTER_RESPONSE_SCHEMA,
+            )
+        except StoryError:
+            detail = {"parsed": None}
+        parsed_chapter = detail["parsed"] if isinstance(detail["parsed"], dict) else {}
+        chapters.append({
+            "id": _as_text(entry.get("id")).strip() or f"chapter-{index + 1}",
+            "title": _as_text(entry.get("title")).strip(),
+            "narrative": _as_text(parsed_chapter.get("narrative")).strip()
+                or _as_text(entry.get("summary")).strip(),
+            "how_it_works": _as_text(parsed_chapter.get("how_it_works")).strip(),
+            "why_it_matters": _as_text(parsed_chapter.get("why_it_matters")).strip(),
+            "source_files": entry.get("source_files") or [],
+            "evidence": parsed_chapter.get("evidence") or [],
+            "relationships": parsed_chapter.get("relationships") or [],
+        })
+
+    if not chapters:
+        return None
+    return {
+        "title": _as_text(outline.get("title")).strip() or record.get("name", "Untitled project"),
+        "overview": _as_text(outline.get("overview")).strip(),
+        "chapters": chapters,
+        "model": outline_response["model"],
+    }
+
+
+def generate(record: dict, files: list[dict]) -> dict:
+    """Generate a grounded, structured story with the configured local model."""
+    relationships = static_analysis.build_map(files).get("edges", [])
+    issues = static_analysis.detect_issues(files, record.get("skipped") or {}).get("findings", [])
+
+    prompt, shown = build_prompt(record, files, relationships, issues)
+    incremental = len(shown) < len(files)
+    model = None
+    raw_text = ""
+    parsed = None
+
+    if incremental:
+        # The whole source does not fit one prompt: plan chapters from the full
+        # catalogue, then generate each chapter against its own files.
+        incremental_story = _generate_incremental(record, files, relationships, issues)
+        if incremental_story is not None:
+            model = incremental_story.pop("model", None)
+            parsed = incremental_story
+    else:
+        response = _call_model(prompt, STORY_RESPONSE_SCHEMA)
+        model = response["model"]
+        raw_text = response["text"]
+        parsed = response["parsed"]
+
+    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     grounded = ground_story(parsed, record, files, issues, relationships) if parsed else None
 
+    coverage = {
+        "files_total": len(files),
+        "files_excerpted": len(shown),
+        "incremental": incremental,
+    }
     if grounded:
         grounded.update({
             "structured": True,
@@ -626,7 +870,12 @@ def generate(record: dict, files: list[dict]) -> dict:
             "model": model,
             "generated_at": generated_at,
             "text": to_markdown(grounded["title"], grounded["overview"], grounded["chapters"]),
-            "note": "",
+            "coverage": coverage,
+            "note": (
+                "Generated incrementally: chapters were planned from the full file "
+                "catalogue and detailed per chapter."
+                if incremental else ""
+            ),
         })
         return grounded
 
@@ -639,6 +888,7 @@ def generate(record: dict, files: list[dict]) -> dict:
         "overview": "",
         "chapters": [],
         "verified_issues": [_issue_summary(finding) for finding in issues[:MAX_VERIFIED_ISSUES]],
+        "coverage": coverage,
         "text": raw_text,
         "note": "The model did not return structured chapters, so the raw response is shown below.",
     }

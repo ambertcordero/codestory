@@ -1,0 +1,543 @@
+﻿/* CodeStory - pages/splash.css
+   Styles for the landing / splash screen (index.html). */
+
+* { box-sizing: border-box; }
+
+html, body {
+  min-height: 100%;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.splash-screen {
+  --splash-ink: #f5f1e8;
+  --splash-muted: rgba(245, 241, 232, 0.68);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: hidden;
+  padding: 28px clamp(24px, 7vw, 108px) 24px;
+  background:
+    radial-gradient(ellipse at 72% 48%, rgba(45, 92, 142, 0.26), transparent 38%),
+    linear-gradient(125deg, #101f30 0%, #142941 54%, #1a3045 100%);
+  color: var(--splash-ink);
+}
+
+.splash-glow {
+  position: absolute;
+  z-index: -1;
+  width: 380px;
+  height: 380px;
+  border: 1px solid rgba(229, 202, 147, 0.09);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.splash-glow-one {
+  top: -250px;
+  right: 9%;
+  box-shadow: 0 0 0 46px rgba(229, 202, 147, 0.025), 0 0 0 92px rgba(229, 202, 147, 0.02);
+}
+
+.splash-glow-two {
+  bottom: -300px;
+  left: 5%;
+  width: 480px;
+  height: 480px;
+}
+
+.splash-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  align-self: flex-start;
+}
+
+.splash-brand-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(223, 234, 249, 0.25);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5c995;
+}
+
+.splash-brand-mark svg {
+  width: 27px;
+  height: 27px;
+}
+
+.splash-brand-copy strong,
+.splash-brand-copy small {
+  display: block;
+}
+
+.splash-brand-copy strong {
+  font-size: 1.03rem;
+  letter-spacing: -0.02em;
+}
+
+.splash-brand-copy small {
+  margin-top: 2px;
+  color: var(--splash-muted);
+  font-size: 0.68rem;
+}
+
+.splash-content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  align-items: center;
+  gap: clamp(28px, 6vw, 96px);
+  width: min(1180px, 100%);
+  flex: 1;
+  margin: 0 auto;
+  padding: 44px 0 48px;
+}
+
+.splash-intro {
+  max-width: 570px;
+}
+
+.splash-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 24px;
+  color: #e5c995;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.splash-eyebrow span {
+  width: 24px;
+  height: 1px;
+  background: currentColor;
+}
+
+.splash-intro h1 {
+  margin: 0;
+  color: var(--splash-ink);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(3.7rem, 7.4vw, 6.6rem);
+  font-weight: 700;
+  letter-spacing: -0.065em;
+  line-height: 0.98;
+}
+
+.splash-intro h1 em {
+  color: #e5c995;
+  font-weight: 600;
+}
+
+.splash-description {
+  max-width: 470px;
+  margin: 24px 0 28px;
+  color: var(--splash-muted);
+  font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+  line-height: 1.75;
+}
+
+.splash-start-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 56px;
+  padding: 0 22px;
+  border: 1px solid #f1d9a9;
+  border-radius: 10px;
+  background: #e5c995;
+  box-shadow: 0 10px 30px rgba(4, 12, 21, 0.24);
+  color: #17283a;
+  font-size: 0.94rem;
+  font-weight: 700;
+  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.splash-start-button:hover {
+  transform: translateY(-2px);
+  background: #f0d9ad;
+  box-shadow: 0 14px 34px rgba(4, 12, 21, 0.32);
+}
+
+.splash-start-button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+}
+
+.splash-start-button svg {
+  width: 19px;
+  height: 19px;
+}
+
+.splash-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: rgba(245, 241, 232, 0.52);
+  font-size: 0.74rem;
+}
+
+.splash-note span {
+  color: #e5c995;
+}
+
+.splash-art {
+  position: relative;
+  display: grid;
+  min-height: 450px;
+  place-items: center;
+  perspective: 1000px;
+}
+
+.splash-orbit {
+  position: absolute;
+  aspect-ratio: 1;
+  border: 1px solid rgba(229, 201, 149, 0.15);
+  border-radius: 50%;
+}
+
+.splash-orbit-outer {
+  width: min(92%, 440px);
+}
+
+.splash-orbit-inner {
+  width: min(70%, 330px);
+  border-style: dashed;
+  border-color: rgba(229, 201, 149, 0.12);
+}
+
+.splash-art-book {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(278px, 66%);
+  min-height: 344px;
+  padding: 36px 30px 28px 40px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 241, 232, 0.26);
+  border-radius: 5px 14px 14px 5px;
+  background:
+    linear-gradient(90deg, rgba(8, 19, 30, 0.55) 0, rgba(8, 19, 30, 0.16) 7%, transparent 18%),
+    linear-gradient(145deg, #36516b 0%, #233c55 48%, #192d42 100%);
+  box-shadow: 20px 24px 60px rgba(2, 9, 16, 0.42), inset 1px 0 rgba(255, 255, 255, 0.2);
+  transform: rotateY(-9deg) rotateZ(-3deg);
+}
+
+.splash-book-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 18px;
+  width: 1px;
+  background: rgba(229, 201, 149, 0.42);
+}
+
+.splash-book-kicker {
+  color: #e5c995;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.splash-book-rule {
+  width: 38px;
+  height: 1px;
+  margin-top: 28px;
+  background: rgba(229, 201, 149, 0.72);
+}
+
+.splash-book-title {
+  margin-top: 22px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.9rem, 3.3vw, 2.65rem);
+  letter-spacing: -0.055em;
+  line-height: 1.06;
+}
+
+.splash-book-title em {
+  color: #e5c995;
+  font-weight: 600;
+}
+
+.splash-book-lines {
+  display: grid;
+  gap: 7px;
+  margin-top: 26px;
+}
+
+.splash-book-lines i {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(245, 241, 232, 0.24);
+}
+
+.splash-book-lines i:nth-child(2) {
+  width: 78%;
+}
+
+.splash-book-lines i:nth-child(3) {
+  width: 58%;
+}
+
+.splash-book-mark {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  margin-top: auto;
+  place-items: center;
+  border: 1px solid rgba(229, 201, 149, 0.5);
+  border-radius: 50%;
+  color: #e5c995;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.72rem;
+}
+
+.splash-code-card {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 52px;
+  width: min(300px, 61%);
+  padding: 0 0 17px;
+  border: 1px solid rgba(204, 221, 238, 0.2);
+  border-radius: 10px;
+  background: rgba(13, 27, 41, 0.94);
+  box-shadow: 0 18px 40px rgba(2, 9, 16, 0.35);
+  transform: rotate(3deg);
+}
+
+.splash-code-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 37px;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(204, 221, 238, 0.13);
+}
+
+.splash-code-top > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c98073;
+}
+
+.splash-code-top > span:nth-child(2) { background: #dfbc77; }
+.splash-code-top > span:nth-child(3) { background: #77ad8f; }
+
+.splash-code-top small {
+  margin-left: auto;
+  color: rgba(245, 241, 232, 0.54);
+  font-size: 0.61rem;
+}
+
+.splash-code-card code {
+  display: block;
+  padding: 15px 13px 0;
+  color: #d7e5f2;
+  font-family: Consolas, monospace;
+  font-size: clamp(0.6rem, 1vw, 0.73rem);
+  line-height: 2;
+  white-space: nowrap;
+}
+
+.splash-code-card code b {
+  margin-right: 8px;
+  color: rgba(214, 227, 240, 0.38);
+  font-weight: 400;
+}
+
+.splash-code-card code i { color: #d8aeff; font-style: normal; }
+.splash-code-card code em { color: #f5d28a; font-style: normal; }
+.splash-code-card code strong { color: #8ce7b9; font-weight: 500; }
+
+.splash-spark {
+  position: absolute;
+  color: #e5c995;
+  text-shadow: 0 0 24px rgba(229, 201, 149, 0.4);
+}
+
+.splash-spark-one {
+  top: 17%;
+  right: 15%;
+  font-size: 1.6rem;
+}
+
+.splash-spark-two {
+  bottom: 21%;
+  left: 8%;
+  font-size: 1.2rem;
+}
+
+.splash-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 17px;
+  border-top: 1px solid rgba(245, 241, 232, 0.13);
+  color: rgba(245, 241, 232, 0.43);
+  font-size: 0.59rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+}
+
+.splash-footer b {
+  padding-left: 5px;
+  color: #e5c995;
+}
+
+@media (max-width: 760px) {
+  .splash-screen {
+    padding: 20px 24px 18px;
+  }
+
+  .splash-content {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 52px 0 38px;
+  }
+
+  .splash-intro {
+    position: relative;
+    z-index: 3;
+    margin: 0 auto;
+  }
+
+  .splash-intro h1 {
+    font-size: clamp(3.35rem, 12vw, 5.4rem);
+  }
+
+  .splash-description {
+    max-width: 500px;
+    margin: 18px 0 22px;
+  }
+
+  .splash-art {
+    min-height: clamp(270px, 66vw, 380px);
+    margin-top: 8px;
+  }
+
+  .splash-art-book {
+    width: min(230px, 58%);
+    min-height: 280px;
+    padding: 28px 24px 22px 34px;
+  }
+
+  .splash-book-title {
+    font-size: clamp(1.8rem, 7vw, 2.3rem);
+  }
+
+  .splash-code-card {
+    right: 4%;
+    bottom: 24px;
+    width: min(270px, 58%);
+  }
+}
+
+@media (max-width: 420px) {
+  .splash-screen {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .splash-content {
+    padding-top: 42px;
+    padding-bottom: 26px;
+  }
+
+  .splash-eyebrow {
+    font-size: 0.61rem;
+    letter-spacing: 0.12em;
+  }
+
+  .splash-description {
+    font-size: 0.91rem;
+  }
+
+  .splash-art {
+    min-height: 260px;
+  }
+
+  .splash-art-book {
+    min-height: 245px;
+  }
+
+  .splash-code-card {
+    bottom: 10px;
+  }
+
+  .splash-footer {
+    font-size: 0.48rem;
+    letter-spacing: 0.09em;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 560px) {
+  .splash-screen {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .splash-brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .splash-brand-mark svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .splash-content {
+    display: block;
+    padding: 22px 0 14px;
+  }
+
+  .splash-eyebrow {
+    margin-bottom: 12px;
+  }
+
+  .splash-intro h1 {
+    font-size: clamp(2.7rem, 9vw, 3.5rem);
+  }
+
+  .splash-description {
+    margin: 12px 0 16px;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .splash-note {
+    margin-top: 12px;
+  }
+
+  .splash-art {
+    display: none;
+  }
+
+  .splash-footer {
+    margin-top: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-start-button {
+    transition: none;
+  }
+}

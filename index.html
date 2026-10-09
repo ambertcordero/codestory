@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#142941" />
+    <title>CodeStory - Your Code. Its Story.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Libre+Baskerville:wght@400;700&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/pages/splash.css" />
+  </head>
+  <body>
+    <main class="splash-screen" id="splash-screen" aria-labelledby="splash-title">
+      <div class="splash-glow splash-glow-one" aria-hidden="true"></div>
+      <div class="splash-glow splash-glow-two" aria-hidden="true"></div>
+      <header class="splash-brand">
+        <span class="splash-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64"><path d="M15 18.5h10v27H15zm24 0h10v27H39zm-8.5-7h7v34h-7zm-10 7h7v27h-7zm18 0h7v27h-7z" fill="currentColor"/></svg>
+        </span>
+        <span class="splash-brand-copy"><strong>CodeStory</strong><small>Your Code. Its Story.</small></span>
+      </header>
+
+      <div class="splash-content">
+        <section class="splash-intro">
+          <p class="splash-eyebrow"><span></span> A new way to understand your code</p>
+          <h1 id="splash-title">Every codebase<br />has a <em>story.</em></h1>
+          <p class="splash-description">Turn your project into a story you can follow. Explore how it works, uncover the important details, and make sense of every moving part.</p>
+          <a class="splash-start-button" href="dashboard.html">
+            <span>Start CodeStory</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m0 0-6-6m6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <p class="splash-note"><span aria-hidden="true">✦</span> Your next project, explained one chapter at a time.</p>
+        </section>
+
+        <div class="splash-art" aria-hidden="true">
+          <div class="splash-orbit splash-orbit-outer"></div>
+          <div class="splash-orbit splash-orbit-inner"></div>
+          <div class="splash-art-book">
+            <span class="splash-book-spine"></span>
+            <span class="splash-book-kicker">THE SOFTWARE CHRONICLES</span>
+            <span class="splash-book-rule"></span>
+            <span class="splash-book-title">Your code,<br /><em>in context.</em></span>
+            <span class="splash-book-lines"><i></i><i></i><i></i></span>
+            <span class="splash-book-mark">CS</span>
+          </div>
+          <div class="splash-code-card">
+            <div class="splash-code-top"><span></span><span></span><span></span><small>story.js</small></div>
+            <code><b>01</b> <i>const</i> story = <em>code</em>;<br /><b>02</b> <i>story</i>.understand();<br /><b>03</b> <strong>// it all connects</strong></code>
+          </div>
+          <span class="splash-spark splash-spark-one">✳</span>
+          <span class="splash-spark splash-spark-two">✦</span>
+        </div>
+      </div>
+
+      <footer class="splash-footer"><span>READ THE CODE. SEE THE STORY.</span><span>BUILT FOR THE CURIOUS <b>✦</b></span></footer>
+    </main>
+  </body>
+</html>

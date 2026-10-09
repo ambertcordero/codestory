@@ -1,0 +1,54 @@
+﻿/* CodeStory - main.css
+   Global design tokens, reset and base element styles shared by every page. */
+
+:root {
+  --bg: #f7f3ea;
+  --bg-strong: #efe9dd;
+  --sidebar: #142941;
+  --sidebar-deep: #0f2135;
+  --nav-active: rgba(102, 144, 184, 0.18);
+  --nav-active-border: rgba(129, 170, 205, 0.65);
+  --text: #15283f;
+  --muted: #76756d;
+  --border: #d9d4c9;
+  --card: rgba(255, 255, 255, 0.18);
+  --blue: #2d5c8e;
+  --blue-soft: #e7eef6;
+  --blue-deep: #1a3956;
+  --code-bg: #15283f;
+  --code-text: #d4e6ff;
+  --success: #4b7a5a;
+  --shadow: rgba(18, 26, 37, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  min-height: 100vh;
+}
+
+button, input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+svg {
+  display: block;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+

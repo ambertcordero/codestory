@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeStory - Processing the Order</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Libre+Baskerville:wght@400;700&family=Playfair+Display:wght@600;700;800;900&display=swap"
+    rel="stylesheet" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/pages/dashboard.css" />
+    <link rel="stylesheet" href="css/pages/import.css" />
+    <link rel="stylesheet" href="css/pages/workspace.css" />
+</head>
+
+<body class="showing-overview">
+  <div class="app-shell">
+    <aside class="sidebar" id="mobile-sidebar">
+      <div class="brand-block">
+        <div class="brand-logo">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <path d="M15 18.5h10v27H15zm24 0h10v27H39zm-8.5-7h7v34h-7zm-10 7h7v27h-7zm18 0h7v27h-7z" fill="currentColor"
+              opacity="0.9" />
+            <path d="M18 18.5h6v27h-6zm22 0h6v27h-6zm-12-7h6v34h-6z" fill="currentColor" opacity="0.85" />
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <h1>CodeStory</h1>
+          <p>Your Code. Its Story.</p>
+        </div>
+        <button class="sidebar-close-toggle" type="button" aria-label="Close sidebar menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Sidebar navigation">
+        <button class="nav-item active" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24">
+              <path
+                d="M7 7.5A2.5 2.5 0 0 1 9.5 5h6A2.5 2.5 0 0 1 18 7.5v9A2.5 2.5 0 0 1 15.5 19h-6A2.5 2.5 0 0 1 7 16.5v-9Z"
+                fill="none" stroke="currentColor" stroke-width="1.5" />
+              <path d="M9 9h6M9 12h6M9 15h4" fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" />
+            </svg></span>Home</button>
+        <button class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24">
+              <path
+                d="M8 7.5V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5v2M5.5 9.5h13A1.5 1.5 0 0 1 20 11v7.5A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5V11a1.5 1.5 0 0 1 1.5-1.5Z"
+                fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg></span>My Projects</button>
+        <button class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24">
+              <path d="M5 5.5h6v6H5zm8 0h6v6h-6zm-8 8h6v6H5zm8 0h6v6h-6z" fill="none" stroke="currentColor"
+                stroke-width="1.5" stroke-linejoin="round" />
+              <path d="M8 8.5h.01m8 0h.01M8 16.5h.01m8 0h.01" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" />
+            </svg></span>My Explorer</button>
+        <button class="nav-item" type="button"><span class="nav-icon"><svg viewBox="0 0 24 24">
+              <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" fill="none" stroke="currentColor" stroke-width="1.6" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.7 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8.92a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+                fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg></span>Settings</button>
+      </nav>
+
+      <section class="current-project-card" aria-label="Current project">
+        <h2>Current Project</h2>
+        <div class="current-project-name">
+          <span class="current-project-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l1.7 2.2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-10Z"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span id="sidebarCurrentProjectName">No project selected</span>
+        </div>
+      </section>
+
+      <section class="sidebar-progress-card">
+        <h3>Project Progress</h3>
+        <div class="progress-ring-wrap">
+          <div class="progress-ring" aria-label="50 percent complete"><span>50%</span></div>
+          <div class="progress-copy">
+            <strong>Analysis Completed</strong>
+            <small>3 of 6 chapters</small>
+          </div>
+        </div>
+
+        <ul class="progress-checklist">
+          <li class="done"><span class="status-icon">✓</span><span>Code Analysis</span></li>
+          <li class="done"><span class="status-icon">✓</span><span>Structure Mapping</span></li>
+          <li class="active"><span class="status-icon">◉</span><span>Story Generation</span></li>
+          <li><span class="status-icon">○</span><span>Issue Detection</span></li>
+          <li><span class="status-icon">○</span><span>Dependency Check</span></li>
+          <li><span class="status-icon">○</span><span>Final Report</span></li>
+        </ul>
+      </section>
+
+      <div class="sidebar-mountain" aria-hidden="true"></div>
+    </aside>
+    <button class="sidebar-backdrop" type="button" aria-label="Close sidebar menu" tabindex="-1"></button>
+
+    <div class="main-panel">
+      <header class="topbar" aria-label="Top navigation">
+        <button class="sidebar-menu-toggle" type="button" aria-label="Open sidebar menu" aria-expanded="false"
+          aria-controls="mobile-sidebar">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" />
+          </svg>
+        </button>
+        <div class="search-wrap">
+          <span class="search-icon">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+              <path d="M16 16l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+          <input type="text" aria-label="Search this project" placeholder="Search in this project..." />
+        </div>
+
+        <div class="project-selector" aria-label="Project selector">
+          <span class="folder-icon">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l1.7 2.2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-10Z"
+                fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="project-name" id="topbarProjectName">No project selected</span>
+          <span class="chev">▾</span>
+          <span class="lang-badge">JavaScript</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="icon-button" type="button" aria-label="Notifications">
+            <svg class="notification-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor"
+                stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M10 21h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+          </button>
+          <div class="user-block">
+            <div class="avatar">A</div>
+            <span>Hello, Ambaet</span>
+            <span class="chev">▾</span>
+          </div>
+        </div>
+      </header>
+
+      <header class="overview-topbar" aria-label="Overview navigation">
+        <button class="overview-sidebar-toggle" type="button" aria-label="Open sidebar menu" aria-expanded="false"
+          aria-controls="mobile-sidebar">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" />
+          </svg>
+        </button>
+        <label class="overview-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <path d="m16 16 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+          <input type="search" placeholder="Search in your projects..." aria-label="Search in your projects" />
+        </label>
+        <button class="overview-project-filter" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l1.7 2.2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-10Z"
+              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          </svg>
+          <span>All Projects</span><span class="chev">▾</span>
+        </button>
+        <div class="overview-topbar-actions">
+          <button class="icon-button" type="button" aria-label="Notifications">
+            <svg class="notification-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor"
+                stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M10 21h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+          </button>
+          <div class="user-block">
+            <div class="avatar">A</div>
+            <span>Hello, Ambaet</span>
+            <span class="chev">▾</span>
+          </div>
+        </div>
+      </header>
+
+      <nav class="section-tabs" aria-label="Project sections" role="tablist">
+        <button class="section-tab active" type="button" role="tab" aria-selected="true">Overview</button>
+        <button class="section-tab" type="button" role="tab" aria-selected="false">Story</button>
+        <button class="section-tab" type="button" role="tab" aria-selected="false">Issues <span
+            class="tab-badge">3</span></button>
+        <button class="section-tab" type="button" role="tab" aria-selected="false">System Map</button>
+      </nav>
+
+      <main class="overview-page">
+        <div class="overview-main-column">
+          <section class="overview-hero">
+            <div class="overview-hero-copy">
+              <p class="overview-kicker">CODESTORY</p>
+              <h1>Turn Your Code<br />Into a Story</h1>
+              <p>CodeStory transforms your source code into beautiful, interactive documentation. Understand your
+                system, explore the architecture, and follow the story behind every line of code.</p>
+              <div class="overview-hero-actions">
+                <button class="overview-primary-button" type="button" id="uploadProjectButton"><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 15.5V4m0 0-4 4m4-4 4 4M5 15v3.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V15"
+                      fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>Upload &amp; Analyze Project</button>
+                <button class="overview-secondary-button" type="button" id="tryDemoButton"><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+                    <path d="m10 8.7 5.2 3.3-5.2 3.3z" fill="currentColor" stroke="none" />
+                  </svg>Try Demo Project</button>
+              </div>
+            </div>
+            <div class="overview-hero-art" role="img"
+              aria-label="Illustration of an open storybook revealing a software system in the mountains">
+              <svg viewBox="0 0 520 300" aria-hidden="true">
+                <g class="hero-mountain-lines" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path
+                    d="M31 215 104 111l30 43 50-86 38 54 41-85 52 82 40-52 52 83 39-32 48 96M62 215l75-83 24 36m50-54 35-53 31 58m31-43 29 42m47-26 51 67" />
+                  <path
+                    d="m171 102 14-34 13 22 11-5-25-34-36 63m111-8 15-36 18 29-16-4-8 13m73-12 19-26 20 35m-252 91 28-42 17 23m240 13 25-34 28 42" />
+                  <path d="M25 218h476M48 225h430M88 232h355" opacity=".48" />
+                  <path
+                    d="M73 209v-26m-7 10 7-11 8 11m-16 0 8-12 8 12m301 15v-37m-10 16 10-17 10 17m-18-1 18-22 16 22m42 1v-30m-9 13 9-15 10 15m-18 0 18-20 12 20"
+                    stroke-width="2" />
+                </g>
+                <g class="hero-book" stroke="currentColor" stroke-linejoin="round">
+                  <path d="M52 222 75 180q81-20 174 1l13 89q-84-23-183-2z" fill="#d9d1be" stroke-width="2.2" />
+                  <path d="m262 181 12 89q80-36 179-30l-20-60q-89-22-171 1z" fill="#e9e2d2" stroke-width="2.2" />
+                  <path
+                    d="m75 180 15 75q85-18 172 15l-13-89q-93-21-174-1zm187 1 12 89q80-36 159-30l-20-60q-75-18-151 1z"
+                    fill="none" stroke-width="1.4" />
+                  <path d="M258 185v82m-159-67 31-4m-29 12 39-5m-37 13 43-6m107-3 32-8m-31 18 44-12m-42 22 48-14"
+                    fill="none" stroke-width="1.1" opacity=".72" />
+                </g>
+                <g class="hero-flowchart" fill="#d8e0df" stroke="currentColor" stroke-width="1.7">
+                  <rect x="322" y="201" width="28" height="17" rx="3" />
+                  <rect x="367" y="193" width="28" height="17" rx="3" />
+                  <rect x="367" y="221" width="28" height="17" rx="3" />
+                  <rect x="411" y="204" width="27" height="17" rx="3" />
+                  <path d="M350 209h17m-3-4 4 4-4 4m-14 12 13 0v-20m28 0 16 6m-16 12 16-7" fill="none"
+                    stroke-width="1.4" />
+                  <circle cx="336" cy="209" r="2" fill="currentColor" stroke="none" />
+                  <circle cx="381" cy="201" r="2" fill="currentColor" stroke="none" />
+                  <circle cx="381" cy="229" r="2" fill="currentColor" stroke="none" />
+                </g>
+                <g class="hero-annotation" fill="currentColor" font-family="Georgia,serif" font-size="13"
+                  font-style="italic">
+                  <text x="420" y="82" transform="rotate(-8 420 82)">Better</text><text x="413" y="98"
+                    transform="rotate(-8 413 98)">documentation</text><text x="423" y="116"
+                    transform="rotate(-8 423 116)">Deeper</text><text x="416" y="132"
+                    transform="rotate(-8 416 132)">understanding</text>
+                  <path d="m414 139 64-10" fill="none" stroke="currentColor" stroke-width="1" />
+                </g>
+              </svg>
+            </div>
+          </section>
+
+          <section class="overview-projects" aria-labelledby="recent-projects-heading">
+            <div class="overview-section-heading">
+              <h2 id="recent-projects-heading"><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l1.7 2.2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-10Z"
+                    fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                </svg>Recent Projects</h2><button class="overview-text-link" type="button">View All
+                <span>?</span></button>
+            </div>
+            <div class="overview-project-grid">
+              <a class="overview-project-card" href="dashboard.html">
+                <div class="overview-project-art art-pos" aria-hidden="true"><svg viewBox="0 0 120 90">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2">
+                      <path
+                        d="m13 59 42-15 51 9-46 18zM21 57V35l36-14 39 9v25M58 69v13m-16 3 17-4 19 2M30 35l28 7 28-11M31 37v13l24 6V43zm8 3v7m9-5v8m-5 9v9m26-25v10m6-9v9m8-8v8" />
+                      <path d="m42 29 21-8 24 6-22 8z" opacity=".55" />
+                    </g>
+                  </svg></div>
+                <div class="overview-project-info">
+                  <h3>POS-System</h3>
+                  <p class="overview-project-meta">Retail <span>?</span> JavaScript</p>
+                  <p>A modern point of sale system for small and medium businesses with inventory management and sales
+                    tracking.</p>
+                </div>
+                <div class="overview-project-progress"><span class="progress-track"><i
+                      style="width:50%"></i></span><span class="progress-label"><span>50% complete</span><span>Chapter 3
+                      / 6</span></span></div>
+              </a>
+              <a class="overview-project-card" href="dashboard.html">
+                <div class="overview-project-art art-learning" aria-hidden="true"><svg viewBox="0 0 120 90">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2">
+                      <rect x="17" y="15" width="85" height="55" rx="3" />
+                      <path d="M17 25h85m-69 8h53v27H33zm7 7h37m-37 7h30m-30 7h34M26 77h68m-49-7v7m33-7v7" />
+                      <circle cx="23" cy="20" r="1" fill="currentColor" />
+                    </g>
+                  </svg></div>
+                <div class="overview-project-info">
+                  <h3>Web Learning App</h3>
+                  <p class="overview-project-meta">Education <span>?</span> JavaScript</p>
+                  <p>A mobile learning platform for ALS with offline support and progress tracking.</p>
+                </div>
+                <div class="overview-project-progress"><span class="progress-track"><i
+                      style="width:33%"></i></span><span class="progress-label"><span>33% complete</span><span>Chapter 2
+                      / 6</span></span></div>
+              </a>
+              <a class="overview-project-card" href="dashboard.html">
+                <div class="overview-project-art art-farm" aria-hidden="true"><svg viewBox="0 0 120 90">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2">
+                      <path
+                        d="M8 52 37 30l24 18 22-24 29 27M14 50l43 32 46-30M24 57l34 25m-25-32 29 34m4-20 12-14m-3 27 16-39m-7 43 19-31m-81 0V44m-8 7V43m56-17v-8m-5 7 5-8 6 8" />
+                      <path d="m8 53 50 31 54-34" />
+                    </g>
+                  </svg></div>
+                <div class="overview-project-info">
+                  <h3>Tabo Farmers System</h3>
+                  <p class="overview-project-meta">Agriculture <span>?</span> Nuxt + Django</p>
+                  <p>A membership management system for farmers organization in General MacArthur, Eastern Samar.</p>
+                </div>
+                <div class="overview-project-progress"><span class="progress-track"><i
+                      style="width:17%"></i></span><span class="progress-label"><span>17% complete</span><span>Chapter 1
+                      / 6</span></span></div>
+              </a>
+              <a class="overview-project-card" href="dashboard.html">
+                <div class="overview-project-art art-ecommerce" aria-hidden="true"><svg viewBox="0 0 120 90">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2">
+                      <path
+                        d="M12 29a16 16 0 0 1 31-5 13 13 0 0 1 25 4 12 12 0 0 1 4 23H23a12 12 0 0 1-11-22zm29 25h35M40 54v10m15-10v10m15-10v10" />
+                      <path d="m29 67 28-8 33 8-31 10zm5 3v9m45-8v8m-46-4 29 8 32-7M45 23v-8m-5 6 5-9 5 9" />
+                    </g>
+                  </svg></div>
+                <div class="overview-project-info">
+                  <h3>E-Commerce Platform</h3>
+                  <p class="overview-project-meta">Web <span>?</span> React</p>
+                  <p>A full-stack e-commerce platform with payment integration and order tracking.</p>
+                </div>
+                <div class="overview-project-progress"><span class="progress-track"><i
+                      style="width:67%"></i></span><span class="progress-label"><span>67% complete</span><span>Chapter 4
+                      / 6</span></span></div>
+              </a>
+            </div>
+          </section>
+
+          <section class="overview-next-story">
+            <span class="overview-compass" aria-hidden="true">?</span>
+            <div>
+              <h2>Start Your Next Story</h2>
+              <p>Choose a project, explore the code, and let CodeStory tell you the story behind it.</p>
+            </div>
+            <a class="overview-primary-button" href="dashboard.html">Browse Projects <span>?</span></a>
+          </section>
+        </div>
+
+        <aside class="overview-side-column">
+          <section class="overview-side-card overview-stats-card" aria-labelledby="quick-stats-heading">
+            <h2 id="quick-stats-heading"><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 19V11h4v8zm6 0V6h4v13zm6 0V3h4v16z" fill="currentColor" />
+              </svg>Quick Stats</h2>
+            <div class="overview-stats-grid">
+              <div><strong>2</strong><span>Projects</span></div>
+              <div><strong>6</strong><span>Chapters<small>(Avg. per project)</small></span></div>
+              <div><strong>12</strong><span>Issues Found</span></div>
+              <div><strong>100%</strong><span>Documentation<br />Coverage</span></div>
+            </div>
+          </section>
+          <section class="overview-side-card overview-activity-card" aria-labelledby="recent-activity-heading">
+            <h2 id="recent-activity-heading"><svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>Recent Activity</h2>
+            <ul class="overview-activity-list">
+              <li><span class="activity-icon activity-add">+</span>
+                <p>Created a new project<strong>POS-System</strong><small>2 hours ago</small></p>
+              </li>
+              <li><span class="activity-icon activity-chapter">?</span>
+                <p>Completed chapter<strong>Processing the Order</strong><small>4 hours ago</small></p>
+              </li>
+              <li><span class="activity-icon activity-issue">!</span>
+                <p>Fixed issue<strong>Inventory sync error</strong><small>1 day ago</small></p>
+              </li>
+              <li><span class="activity-icon activity-update">?</span>
+                <p>Updated dependency<strong>axios 1.6.8 ? 1.7.0</strong><small>2 days ago</small></p>
+              </li>
+            </ul>
+          </section>
+          <section class="overview-side-card overview-links-card" aria-labelledby="helpful-links-heading">
+            <h2 id="helpful-links-heading"><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M10 13.5 14 9.5m-6 7 1.5 1.5a3 3 0 0 0 4.2 0l4.3-4.3a3 3 0 0 0-4.2-4.2L12.5 11m1.5-3-1.5-1.5a3 3 0 0 0-4.2 0L4 10.8a3 3 0 0 0 4.2 4.2l1.3-1.3"
+                  fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>Helpful Links</h2>
+            <a href="dashboard.html">Documentation <span>?</span></a><a href="dashboard.html">GitHub Repository
+              <span>?</span></a><a href="dashboard.html">Support <span>?</span></a>
+          </section>
+          <div class="overview-brand-lockup"><svg viewBox="0 0 64 64" aria-hidden="true">
+              <path d="M12 17.5h14v29.5H12zm26 0h14v29.5H38zm-11-9h8v38h-8zm-5 9h6v29.5h-6zm24 0h6v29.5h-6z"
+                fill="currentColor" />
+            </svg><span><strong>CodeStory</strong><small>Your Code. Its Story.</small></span></div>
+        </aside>
+      </main>
+
+      <main class="issues-page" hidden>
+        <div class="issues-header">
+          <div class="issues-title-wrap">
+            <h1>Project Issues</h1>
+            <span class="issues-count">3 Open</span>
+          </div>
+          <p class="issues-subtitle">Detected from code analysis for POS-System</p>
+        </div>
+
+        <div class="issues-layout">
+          <section class="issues-list" aria-label="Issues list">
+            <article class="issue-card">
+              <div class="issue-header">
+                <div class="issue-meta-row">
+                  <span class="severity-badge severity-high">High</span>
+                  <span class="issue-file">src/checkout.js:42</span>
+                </div>
+                <h2>Potential null reference in checkout flow</h2>
+              </div>
+              <p class="issue-description">Accessing order.customer without null check may throw at runtime.</p>
+              <div class="issue-tags">
+                <span class="issue-tag">Bug</span>
+                <span class="issue-tag">Logic</span>
+              </div>
+            </article>
+
+            <article class="issue-card">
+              <div class="issue-header">
+                <div class="issue-meta-row">
+                  <span class="severity-badge severity-medium">Medium</span>
+                  <span class="issue-file">src/cart.js:1</span>
+                </div>
+                <h2>Unused import detected</h2>
+              </div>
+              <p class="issue-description">Imported module is never used.</p>
+              <div class="issue-tags">
+                <span class="issue-tag">Code Smell</span>
+                <span class="issue-tag">Cleanup</span>
+              </div>
+            </article>
+
+            <article class="issue-card">
+              <div class="issue-header">
+                <div class="issue-meta-row">
+                  <span class="severity-badge severity-medium">Medium</span>
+                  <span class="issue-file">src/api.js:28</span>
+                </div>
+                <h2>Missing error handling for API call</h2>
+              </div>
+              <p class="issue-description">fetch() lacks try/catch and user feedback on failure.</p>
+              <div class="issue-tags">
+                <span class="issue-tag">Robustness</span>
+                <span class="issue-tag">Network</span>
+              </div>
+            </article>
+          </section>
+
+          <aside class="issues-sidebar">
+            <div class="issues-summary-card">
+              <h2>Summary</h2>
+              <ul class="issues-summary-list">
+                <li><span>Total</span><strong>3</strong></li>
+                <li><span>High</span><strong class="text-high">1</strong></li>
+                <li><span>Medium</span><strong class="text-medium">2</strong></li>
+                <li><span>Low</span><strong class="text-low">0</strong></li>
+                <li><span>Resolved</span><strong>0</strong></li>
+              </ul>
+            </div>
+
+            <div class="issues-filter-card">
+              <h2>Filter</h2>
+              <div class="filter-group">
+                <span class="filter-label">Severity</span>
+                <div class="filter-chips">
+                  <button class="filter-chip active" type="button">All</button>
+                  <button class="filter-chip" type="button">High</button>
+                  <button class="filter-chip" type="button">Medium</button>
+                  <button class="filter-chip" type="button">Low</button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">Status</span>
+                <div class="filter-chips">
+                  <button class="filter-chip active" type="button">Open</button>
+                  <button class="filter-chip" type="button">Resolved</button>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+
+      <main class="system-map-page" hidden>
+        <header class="system-map-header">
+          <div>
+            <p class="system-map-kicker">POS-SYSTEM · DEMO ARCHITECTURE</p>
+            <h1>System Map</h1>
+            <p class="system-map-subtitle">Follow how a sale moves from the register through checkout, payments,
+              inventory, and storage.</p>
+          </div>
+          <div class="system-map-stats" aria-label="Map summary">
+            <span><strong>6</strong> components</span>
+            <span><strong>5</strong> connections</span>
+          </div>
+        </header>
+
+        <section class="system-map-toolbar" aria-label="Map controls">
+          <label class="system-map-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+              <path d="m16 16 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+            <input class="system-map-search-input" type="search" placeholder="Find a component or file..."
+              aria-label="Find a component or file" />
+          </label>
+          <div class="system-map-filters" role="group" aria-label="Filter components by type">
+            <button class="map-filter active" type="button" data-filter="all" aria-pressed="true">All</button>
+            <button class="map-filter" type="button" data-filter="frontend" aria-pressed="false">Frontend</button>
+            <button class="map-filter" type="button" data-filter="service" aria-pressed="false">Services</button>
+            <button class="map-filter" type="button" data-filter="data" aria-pressed="false">Data</button>
+          </div>
+          <div class="system-map-zoom" role="group" aria-label="Zoom controls">
+            <button class="map-zoom-button" type="button" data-zoom="out" aria-label="Zoom out">−</button>
+            <span class="map-zoom-level" aria-live="polite">100%</span>
+            <button class="map-zoom-button" type="button" data-zoom="in" aria-label="Zoom in">+</button>
+            <button class="map-zoom-reset" type="button">Reset</button>
+          </div>
+        </section>
+
+        <div class="system-map-layout">
+          <section class="system-map-canvas" aria-label="Interactive architecture diagram">
+            <div class="system-map-stage">
+              <svg class="architecture-map" viewBox="0 0 1060 620" role="group"
+                aria-label="POS-System architecture. Select a component to see details.">
+                <defs>
+                  <marker id="map-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7"
+                    orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a9a9f" />
+                  </marker>
+                </defs>
+                <g class="map-layers" aria-hidden="true">
+                  <text x="64" y="58">PRESENTATION</text>
+                  <text x="410" y="58">APPLICATION</text>
+                  <text x="770" y="58">INTEGRATIONS &amp; DATA</text>
+                  <path d="M350 76v498M714 76v498" />
+                </g>
+                <g class="map-viewport">
+                  <g class="map-edges" aria-hidden="true">
+                    <path class="map-edge" data-from="pos" data-to="checkout" d="M286 250h92"
+                      marker-end="url(#map-arrow)" />
+                    <path class="map-edge" data-from="checkout" data-to="payments"
+                      d="M634 226h42q20 0 20-20v-80q0-20 20-20h42" marker-end="url(#map-arrow)" />
+                    <path class="map-edge" data-from="checkout" data-to="inventory" d="M634 254h92"
+                      marker-end="url(#map-arrow)" />
+                    <path class="map-edge" data-from="inventory" data-to="catalog" d="M838 305v34"
+                      marker-end="url(#map-arrow)" />
+                    <path class="map-edge" data-from="checkout" data-to="orders" d="M522 300v196q0 20 20 20h184"
+                      marker-end="url(#map-arrow)" />
+                    <text class="map-edge-label" x="321" y="239">places order</text>
+                    <text class="map-edge-label" x="660" y="151">authorizes payment</text>
+                    <text class="map-edge-label" x="661" y="244">checks stock</text>
+                    <text class="map-edge-label" x="849" y="328">reads products</text>
+                    <text class="map-edge-label" x="591" y="508">saves order</text>
+                  </g>
+                  <g class="map-node" data-node="pos" data-type="frontend" data-name="POS Register"
+                    data-file="src/pos.js"
+                    data-description="The cashier-facing interface where a sale begins. It collects items and customer details, then sends the checkout request."
+                    data-connection="Sends the cart to Checkout API." role="button" tabindex="0" aria-pressed="false"
+                    aria-label="POS Register, frontend, src/pos.js">
+                    <rect class="map-node-card" x="64" y="204" width="222" height="96" rx="12" />
+                    <circle class="map-node-icon frontend-icon" cx="91" cy="233" r="13" />
+                    <path class="map-icon-glyph" d="M85 232h12m-10 4h8m-6 4h4" />
+                    <text class="map-node-type" x="114" y="229">FRONTEND</text>
+                    <text class="map-node-title" x="84" y="266">POS Register</text>
+                    <text class="map-node-file" x="84" y="285">src/pos.js</text>
+                    <circle class="map-node-status" cx="268" cy="224" r="4" />
+                  </g>
+                  <g class="map-node" data-node="checkout" data-type="service" data-name="Checkout API"
+                    data-file="src/checkout.js"
+                    data-description="Coordinates the checkout flow: validates the cart, requests payment authorization, updates stock, and records the order."
+                    data-connection="Receives requests from POS Register; calls Payments API, Inventory Service, and Orders Store."
+                    role="button" tabindex="0" aria-pressed="false" aria-label="Checkout API, service, src/checkout.js">
+                    <rect class="map-node-card" x="410" y="204" width="224" height="96" rx="12" />
+                    <circle class="map-node-icon service-icon" cx="437" cy="233" r="13" />
+                    <path class="map-icon-glyph" d="M432 233h10m-5-5v10" />
+                    <text class="map-node-type" x="460" y="229">CORE SERVICE</text>
+                    <text class="map-node-title" x="430" y="266">Checkout API</text>
+                    <text class="map-node-file" x="430" y="285">src/checkout.js</text>
+                    <circle class="map-node-status" cx="616" cy="224" r="4" />
+                  </g>
+                  <g class="map-node" data-node="payments" data-type="service" data-name="Payments API"
+                    data-file="src/api.js"
+                    data-description="Connects checkout to the external payment provider and returns an authorization result."
+                    data-connection="Called by Checkout API to authorize a payment." role="button" tabindex="0"
+                    aria-pressed="false" aria-label="Payments API, integration, src/api.js">
+                    <rect class="map-node-card" x="770" y="78" width="224" height="96" rx="12" />
+                    <circle class="map-node-icon external-icon" cx="797" cy="107" r="13" />
+                    <path class="map-icon-glyph" d="M792 107h10m-4-4 4 4-4 4" />
+                    <text class="map-node-type" x="820" y="103">EXTERNAL API</text>
+                    <text class="map-node-title" x="790" y="140">Payments API</text>
+                    <text class="map-node-file" x="790" y="159">src/api.js</text>
+                    <circle class="map-node-status" cx="976" cy="98" r="4" />
+                  </g>
+                  <g class="map-node" data-node="inventory" data-type="service" data-name="Inventory Service"
+                    data-file="src/inventory.js"
+                    data-description="Checks product availability and updates stock levels as part of a successful checkout."
+                    data-connection="Called by Checkout API; reads from Product Catalog." role="button" tabindex="0"
+                    aria-pressed="false" aria-label="Inventory Service, service, src/inventory.js">
+                    <rect class="map-node-card" x="770" y="208" width="224" height="96" rx="12" />
+                    <circle class="map-node-icon service-icon" cx="797" cy="237" r="13" />
+                    <path class="map-icon-glyph" d="M791 234h12v8h-12zm3-3v3m6-3v3" />
+                    <text class="map-node-type" x="820" y="233">CORE SERVICE</text>
+                    <text class="map-node-title" x="790" y="270">Inventory Service</text>
+                    <text class="map-node-file" x="790" y="289">src/inventory.js</text>
+                    <circle class="map-node-status" cx="976" cy="228" r="4" />
+                  </g>
+                  <g class="map-node" data-node="catalog" data-type="data" data-name="Product Catalog"
+                    data-file="data/products"
+                    data-description="Stores product records and the stock information used to validate a cart."
+                    data-connection="Read by Inventory Service." role="button" tabindex="0" aria-pressed="false"
+                    aria-label="Product Catalog, data store, data/products">
+                    <rect class="map-node-card" x="770" y="338" width="224" height="96" rx="12" />
+                    <circle class="map-node-icon data-icon" cx="797" cy="367" r="13" />
+                    <path class="map-icon-glyph" d="M791 364q6-5 12 0v8q-6 5-12 0zm0 0q6 5 12 0m-12 4q6 5 12 0" />
+                    <text class="map-node-type" x="820" y="363">DATA STORE</text>
+                    <text class="map-node-title" x="790" y="400">Product Catalog</text>
+                    <text class="map-node-file" x="790" y="419">data/products</text>
+                    <circle class="map-node-status" cx="976" cy="358" r="4" />
+                  </g>
+                  <g class="map-node" data-node="orders" data-type="data" data-name="Orders Store"
+                    data-file="data/orders"
+                    data-description="Persists completed sales so they can be retrieved for receipts, reporting, and order history."
+                    data-connection="Written by Checkout API." role="button" tabindex="0" aria-pressed="false"
+                    aria-label="Orders Store, data store, data/orders">
+                    <rect class="map-node-card" x="770" y="468" width="224" height="96" rx="12" />
+                    <circle class="map-node-icon data-icon" cx="797" cy="497" r="13" />
+                    <path class="map-icon-glyph" d="M791 494q6-5 12 0v8q-6 5-12 0zm0 0q6 5 12 0m-12 4q6 5 12 0" />
+                    <text class="map-node-type" x="820" y="493">DATA STORE</text>
+                    <text class="map-node-title" x="790" y="530">Orders Store</text>
+                    <text class="map-node-file" x="790" y="549">data/orders</text>
+                    <circle class="map-node-status" cx="976" cy="488" r="4" />
+                  </g>
+                </g>
+              </svg>
+              <p class="system-map-empty" hidden>No components match your search. Try another name or filter.</p>
+            </div>
+            <footer class="system-map-legend">
+              <span><i class="legend-dot legend-frontend"></i>Frontend</span>
+              <span><i class="legend-dot legend-service"></i>Service / integration</span>
+              <span><i class="legend-dot legend-data"></i>Data store</span>
+              <span class="map-hint">Select a component to explore it</span>
+            </footer>
+          </section>
+
+          <aside class="map-details" aria-live="polite" aria-label="Component details">
+            <div class="map-details-placeholder">
+              <span class="map-details-symbol" aria-hidden="true">↗</span>
+              <p class="map-details-eyebrow">EXPLORE THE SYSTEM</p>
+              <h2>Choose a component</h2>
+              <p>Select any node in the map to see what it does, where it lives, and how it connects to the rest of the
+                system.</p>
+            </div>
+            <div class="map-details-content" hidden>
+              <span class="map-details-type"></span>
+              <h2 class="map-details-title"></h2>
+              <code class="map-details-file"></code>
+              <p class="map-details-description"></p>
+              <div class="map-details-connection">
+                <strong>Connections</strong>
+                <p class="map-details-connection-copy"></p>
+              </div>
+              <button class="map-clear-selection" type="button">Clear selection</button>
+            </div>
+          </aside>
+        </div>
+      </main>
+
+      <main class="content-grid" hidden>
+        <article class="story-column" aria-live="polite">
+          <header class="story-header">
+            <div class="eyebrow-row">
+              <span>THE SOFTWARE CHRONICLES</span>
+              <div class="chapter-progress" aria-label="Chapter progress">
+                <span>CHAPTER 03 / 06</span>
+                <div class="progress-dots">
+                  <span class="dot active"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="story-main-row">
+              <div class="story-copy-wrap">
+                <h1>Processing the Order</h1>
+                <p class="subtitle">From cart to confirmation — how the system validates the order, updates the
+                  inventory, and prepares the receipt.</p>
+                <div class="meta-row">
+                  <span class="meta-item"><span class="meta-icon"><svg viewBox="0 0 24 24">
+                        <path d="M5 18.5V7.5A1.5 1.5 0 0 1 6.5 6H17.5A1.5 1.5 0 0 1 19 7.5v11H5Zm2-7h10M9 4v2m6-2v2"
+                          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        <path d="M8 11h8v3.5H8z" fill="none" stroke="currentColor" stroke-width="1.5"
+                          stroke-linejoin="round" />
+                      </svg></span>System Story</span>
+                  <span class="meta-item"><span class="meta-icon"><svg viewBox="0 0 24 24">
+                        <path d="M12 4.5v15M7.5 9.5h9M7.5 14.5h9" fill="none" stroke="currentColor" stroke-width="1.5"
+                          stroke-linecap="round" />
+                        <circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5" />
+                      </svg></span>5 min read</span>
+                  <span class="meta-item"><span class="meta-icon"><svg viewBox="0 0 24 24">
+                        <path
+                          d="M7 5.5h10A1.5 1.5 0 0 1 18.5 7v11A1.5 1.5 0 0 1 17 19.5H7A1.5 1.5 0 0 1 5.5 18V7A1.5 1.5 0 0 1 7 5.5Z"
+                          fill="none" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M8 9.5h8M8 13.5h8M8 17.5h5" fill="none" stroke="currentColor" stroke-width="1.5"
+                          stroke-linecap="round" />
+                      </svg></span>Apr 24, 2025</span>
+                  <span class="meta-item"><span class="meta-icon"><svg viewBox="0 0 24 24">
+                        <path d="M7 7.5h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none"
+                          stroke="currentColor" stroke-width="1.5" />
+                        <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" fill="none"
+                          stroke="currentColor" stroke-width="1.5" />
+                      </svg></span>Payment Module</span>
+                </div>
+              </div>
+
+            </div>
+          </header>
+
+          <div class="feature-image" role="img" aria-label="Vintage illustration of a cashier and customer at checkout">
+            <img src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80"
+              alt="Customer checkout illustration" />
+          </div>
+
+          <div class="story-detail-grid">
+            <section class="story-body">
+              <h3>The Story Behind the Transaction</h3>
+              <p>When a customer confirms the order, the system checks whether the payment is sufficient. Once
+                validated, the transaction proceeds to update the inventory and generate a receipt.</p>
+              <p>This process ensures that every sale is recorded accurately, stock levels are updated in real-time, and
+                the customer receives a proper receipt for their purchase.</p>
+            </section>
+            <section class="process-panel" aria-label="Process flow">
+              <h3>The Process Flow</h3>
+              <div class="process-flow">
+                <button class="process-step active" type="button" data-step="checkout">
+                  <span class="step-icon">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M3 7.5h13l2 8.5H5.5L3 7.5Zm3.5 0V5.5A1.5 1.5 0 0 1 8 4h8.5A1.5 1.5 0 0 1 18 5.5V7.5"
+                        fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                      <circle cx="9" cy="18.5" r="1.35" fill="currentColor" />
+                      <circle cx="17" cy="18.5" r="1.35" fill="currentColor" />
+                    </svg>
+                  </span>
+                  <span>Checkout</span>
+                  <small>Order Details</small>
+                </button>
+                <button class="process-step" type="button" data-step="payment">
+                  <span class="step-icon">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M3.5 8.5h17a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 20.5 18.5h-17A1.5 1.5 0 0 1 2 17V10a1.5 1.5 0 0 1 1.5-1.5Zm0 3h17M7 15h3"
+                        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                  <span>Payment</span>
+                  <small>Validation</small>
+                </button>
+                <button class="process-step" type="button" data-step="inventory">
+                  <span class="step-icon">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M4.5 8.5L12 4l7.5 4.5v7L12 20l-7.5-4.5v-7Z" fill="none" stroke="currentColor"
+                        stroke-width="1.5" stroke-linejoin="round" />
+                      <path d="M12 20v-7.5M4.5 8.5l7.5 4.5 7.5-4.5" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                  <span>Update</span>
+                  <small>Inventory</small>
+                </button>
+                <button class="process-step" type="button" data-step="receipt">
+                  <span class="step-icon">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M7 4.5h10a1.5 1.5 0 0 1 1.5 1.5v12l-3-2-3 2-3-2-3 2V6A1.5 1.5 0 0 1 7 4.5Z" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                      <path d="M9 9.5h6M9 13h6" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" />
+                    </svg>
+                  </span>
+                  <span>Generate</span>
+                  <small>Receipt</small>
+                </button>
+              </div>
+            </section>
+          </div>
+
+        </article>
+
+        <aside class="right-column">
+          <div class="right-code-stack">
+            <section class="journey-card" aria-label="Story journey">
+              <h2>Story Journey</h2>
+              <ol class="chapters">
+                <li class="chapter done"><span class="chapter-marker">✓</span>
+                  <div><strong>Introduction</strong><small>The System at a Glance</small></div>
+                </li>
+                <li class="chapter done"><span class="chapter-marker">✓</span>
+                  <div><strong>Placing an Order</strong><small>Add to Cart &amp; Checkout</small></div>
+                </li>
+                <li class="chapter active"><span class="chapter-marker">3</span>
+                  <div><strong>Processing the Order</strong><small>Payment &amp; Validation</small></div>
+                </li>
+                <li class="chapter"><span class="chapter-marker">4</span>
+                  <div><strong>Updating Inventory</strong><small>Stock Management</small></div>
+                </li>
+                <li class="chapter"><span class="chapter-marker">5</span>
+                  <div><strong>Generating Receipt</strong><small>Finalizing the Transaction</small></div>
+                </li>
+                <li class="chapter"><span class="chapter-marker">6</span>
+                  <div><strong>Completion</strong><small>Order Success</small></div>
+                </li>
+              </ol>
+            </section>
+
+            <section class="code-panel" aria-label="Related code">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <span class="panel-title">Related Code</span>
+                  <span class="panel-file"><svg viewBox="0 0 24 24">
+                      <path
+                        d="M8 5.5h8L18.5 7v11.5A1.5 1.5 0 0 1 17 20H7a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 7 5.5Zm8 0V7h2.5"
+                        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                      <path d="M9 10h6M9 14h6" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" />
+                    </svg> paymentService.js</span>
+                </div>
+                <span class="lang-tag">JavaScript</span>
+              </div>
+              <pre class="code-block"><code><span class="line-number">1</span> <span class="token keyword">const</span> <span class="token function">processPayment</span> = <span class="token keyword">async</span> (payment, total) =&gt; {
+<span class="line-number">2</span>   <span class="token keyword">if</span> (payment &gt;= total) {
+<span class="line-number">3</span>     <span class="token keyword">await</span> <span class="token function">updateInventory</span>();
+<span class="line-number">4</span>     <span class="token keyword">await</span> <span class="token function">createReceipt</span>();
+<span class="line-number">5</span>     <span class="token keyword">return</span> { success: <span class="token boolean">true</span>, message: <span class="token string">"Payment successful"</span> };
+<span class="line-number">6</span>   } <span class="token keyword">else</span> {
+<span class="line-number">7</span>     <span class="token keyword">return</span> { success: <span class="token boolean">false</span>, message: <span class="token string">"Insufficient payment"</span> };
+<span class="line-number">8</span>   }
+<span class="line-number">9</span> };</code></pre>
+            </section>
+
+            <aside class="ai-panel" aria-label="AI insight">
+              <div class="ai-header">
+                <span class="sparkle-icon">✦</span>
+                <h4>AI Insight</h4>
+              </div>
+              <p>“The inventory is updated only after successful payment validation to help prevent incorrect stock
+                records and avoid data inconsistency in the system.”</p>
+              <div class="takeaways">
+                <h5>Key Takeaways</h5>
+                <ul>
+                  <li>Ensures accurate transactions</li>
+                  <li>Keeps inventory in sync</li>
+                  <li>Improves data reliability</li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+
+          <section class="topics-card">
+            <h3>Related Topics</h3>
+            <div class="topic-list">
+              <button class="topic-pill active" type="button">Payment</button>
+              <button class="topic-pill" type="button">Inventory</button>
+              <button class="topic-pill" type="button">Receipt</button>
+              <button class="topic-pill" type="button">Transaction</button>
+              <button class="topic-pill" type="button">Validation</button>
+            </div>
+          </section>
+
+          <div class="brand-lockup">
+            <div class="book-mark">
+              <svg viewBox="0 0 64 64">
+                <path d="M12 17.5h14v29.5H12zm26 0h14v29.5H38zm-11-9h8v38h-8zm-5 9h6v29.5h-6zm24 0h6v29.5h-6z"
+                  fill="currentColor" opacity="0.9" />
+              </svg>
+            </div>
+            <div>
+              <strong>CodeStory</strong>
+              <small>Your Code. Its Story.</small>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="bottom-nav" aria-label="Chapter navigation" hidden>
+        <button class="nav-btn prev" type="button" aria-label="Previous chapter">
+          <span class="nav-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24">
+              <path d="M19 12H5m0 0 7-7m-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg></span>
+          <span>Previous Chapter</span>
+        </button>
+        <p>“Understanding the process helps us build better software.”</p>
+        <button class="nav-btn next" type="button" aria-label="Next chapter">
+          <span>Next Chapter</span>
+          <span class="nav-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24">
+              <path d="M5 12h14m0 0-7-7m7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg></span>
+        </button>
+      </footer>
+
+      <main class="workspace-page projects-page" hidden>
+        <div class="workspace-head">
+          <div>
+            <p class="workspace-kicker">My Projects</p>
+            <h1>Imported projects</h1>
+            <p class="workspace-sub">Projects added to CodeStory, stored locally on this machine.</p>
+          </div>
+          <div class="workspace-head-actions">
+            <button class="workspace-btn primary" id="projectsImportButton" type="button">Import project</button>
+          </div>
+        </div>
+        <div class="workspace-toolbar">
+          <input class="workspace-search" id="projectsSearch" type="search" placeholder="Filter by name or language"
+            aria-label="Filter projects" />
+          <span class="workspace-count" id="projectsCount"></span>
+        </div>
+        <div class="workspace-status" id="projectsStatus" hidden></div>
+        <div class="projects-grid" id="projectsGrid"></div>
+      </main>
+
+      <main class="workspace-page explorer-page" hidden>
+        <div class="workspace-head">
+          <div>
+            <p class="workspace-kicker">My Explorer</p>
+            <h1 id="explorerTitle">No project selected</h1>
+            <p class="workspace-sub" id="explorerSub">Import a project to explore its story, map and issues.</p>
+          </div>
+          <div class="workspace-head-actions">
+            <select class="workspace-select" id="explorerProjectSelect" aria-label="Choose project"></select>
+            <button class="workspace-btn" id="explorerRefreshButton" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="explorer-tabs" role="tablist" aria-label="Explorer sections">
+          <button class="explorer-tab active" type="button" role="tab" aria-selected="true" data-tab="story">Story</button>
+          <button class="explorer-tab" type="button" role="tab" aria-selected="false" data-tab="map">System Map</button>
+          <button class="explorer-tab" type="button" role="tab" aria-selected="false" data-tab="issues">Issues</button>
+        </div>
+        <div class="explorer-body">
+          <section class="explorer-panel active" data-panel="story">
+            <div class="explorer-status" data-status="story" hidden></div>
+            <div class="explorer-content" data-content="story"></div>
+          </section>
+          <section class="explorer-panel" data-panel="map">
+            <div class="explorer-status" data-status="map" hidden></div>
+            <div class="explorer-content" data-content="map"></div>
+          </section>
+          <section class="explorer-panel" data-panel="issues">
+            <div class="explorer-status" data-status="issues" hidden></div>
+            <div class="explorer-content" data-content="issues"></div>
+          </section>
+        </div>
+      </main>
+
+      <main class="workspace-page settings-page" hidden>
+        <div class="workspace-head">
+          <div>
+            <p class="workspace-kicker">Settings</p>
+            <h1>Settings</h1>
+            <p class="workspace-sub">Control the local AI connection, analysis preferences and stored data.</p>
+          </div>
+        </div>
+        <div class="settings-feedback" id="settingsFeedback" hidden></div>
+
+        <section class="settings-card">
+          <div class="settings-card-head">
+            <h2>Local AI (Ollama)</h2>
+            <span class="ai-status-badge is-checking" id="settingsAiStatus">Checking...</span>
+          </div>
+          <p class="settings-card-sub">CodeStory writes project stories with a model running on this machine. No data leaves
+            your computer.</p>
+          <div class="settings-field-row">
+            <label class="settings-field">
+              <span>Ollama host</span>
+              <input class="workspace-input" type="text" id="settingsOllamaHost" placeholder="http://127.0.0.1:11434"
+                spellcheck="false" />
+            </label>
+            <label class="settings-field">
+              <span>Model</span>
+              <input class="workspace-input" type="text" id="settingsOllamaModel" placeholder="qwen2.5-coder:3b"
+                spellcheck="false" />
+            </label>
+          </div>
+          <div class="settings-actions">
+            <button class="workspace-btn" type="button" id="settingsCheckButton">Check connection</button>
+            <button class="workspace-btn primary" type="button" id="settingsSaveAnalysis">Save settings</button>
+          </div>
+          <div class="settings-model-list" id="settingsModelList"></div>
+          <div class="settings-help" id="settingsAiHelp" hidden></div>
+        </section>
+
+        <section class="settings-card">
+          <div class="settings-card-head">
+            <h2>Analysis preferences</h2>
+          </div>
+          <p class="settings-card-sub">Applied to new imports and when re-analyzing a project. Secrets and keys are always
+            excluded.</p>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settingsExcludeGenerated" />
+            <span><strong>Exclude generated files</strong><small>Skip build output such as dist, build and minified
+                files.</small></span>
+          </label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settingsExcludeDependencies" />
+            <span><strong>Exclude dependency folders</strong><small>Skip node_modules, vendor, virtualenv and similar
+                folders.</small></span>
+          </label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settingsFlagUnsupported" />
+            <span><strong>Report excluded files</strong><small>List skipped and unsupported files in the Issues
+                view.</small></span>
+          </label>
+        </section>
+
+        <section class="settings-card">
+          <div class="settings-card-head">
+            <h2>Stored data</h2>
+          </div>
+          <p class="settings-card-sub">Imported projects and their files are stored locally by the backend under
+            backend/data.</p>
+          <button class="workspace-btn danger" type="button" id="settingsClearData">Clear all stored data</button>
+        </section>
+
+        <section class="settings-card">
+          <div class="settings-card-head">
+            <h2>About</h2>
+          </div>
+          <p class="settings-card-sub">CodeStory runs entirely on this machine. Imported source code is analyzed
+            statically and never executed.</p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <nav class="mobile-bottom-nav" aria-label="Main navigation">
+    <button class="mobile-nav-item active" type="button" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m3.5 10 8.5-7 8.5 7v9a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 19v-9Z" fill="none"
+          stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+        <path d="M9 20.5v-7h6v7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+      </svg>
+      <span>Home</span>
+    </button>
+    <button class="mobile-nav-item" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l1.7 2.2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-10Z"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>My Projects</span>
+    </button>
+    <button class="mobile-nav-item" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 5.5h6v6H5zm8 0h6v6h-6zm-8 8h6v6H5zm8 0h6v6h-6z" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linejoin="round" />
+      </svg>
+      <span>My Explorer</span>
+    </button>
+    <button class="mobile-nav-item" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" fill="none" stroke="currentColor" stroke-width="1.6" />
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.7 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8.92a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+          fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <div class="import-overlay" id="importOverlay" hidden>
+    <div class="import-dialog" role="dialog" aria-modal="true" aria-labelledby="importDialogTitle">
+      <div class="import-dialog-head">
+        <div>
+          <p class="import-dialog-kicker">Import Project</p>
+          <h2 id="importDialogTitle">Add code to CodeStory</h2>
+        </div>
+        <button class="import-dialog-close" type="button" aria-label="Close import dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="import-dialog-tabs" role="tablist" aria-label="Import methods">
+        <button class="import-method active" type="button" role="tab" aria-selected="true" data-method="zip">Upload
+          ZIP</button>
+        <button class="import-method" type="button" role="tab" aria-selected="false" data-method="folder">Upload
+          Folder</button>
+        <button class="import-method" type="button" role="tab" aria-selected="false" data-method="files">Multiple
+          Files</button>
+        <button class="import-method" type="button" role="tab" aria-selected="false" data-method="single">Individual
+          File</button>
+        <button class="import-method" type="button" role="tab" aria-selected="false" data-method="paste">Paste
+          Code</button>
+        <button class="import-method" type="button" role="tab" aria-selected="false" data-method="demo">Demo
+          Project</button>
+      </div>
+
+      <div class="import-dialog-body">
+        <section class="import-panel active" data-panel="zip">
+          <p class="import-hint">Select a <strong>.zip</strong> archive containing an entire project. Files are
+            validated locally and never executed.</p>
+          <label class="import-dropzone">
+            <input type="file" accept=".zip,application/zip,application/x-zip-compressed" data-input="zip" hidden />
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16V4m0 0-4 4m4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M5 15v3.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V15" fill="none"
+                stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <strong>Choose a ZIP file</strong>
+            <span class="import-dropzone-note">ZIP archive, up to 25 MB</span>
+          </label>
+          <p class="import-filename" data-filename="zip" hidden></p>
+          <button class="import-analyze" type="button" data-analyze="zip" disabled>Upload &amp; Analyze</button>
+        </section>
+
+        <section class="import-panel" data-panel="folder">
+          <p class="import-hint">Select a project folder. Supported files are read <strong>recursively</strong> using
+            your browser's folder selection.</p>
+          <p class="import-feedback is-error" data-unsupported="folder" hidden>Your browser does not support folder
+            selection. Use Upload ZIP or Multiple Files instead.</p>
+          <label class="import-dropzone">
+            <input type="file" webkitdirectory directory multiple data-input="folder" hidden />
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l1.7 2.2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-10Z"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+            <strong>Choose a project folder</strong>
+            <span class="import-dropzone-note">Reads supported files recursively</span>
+          </label>
+          <p class="import-filename" data-filename="folder" hidden></p>
+          <button class="import-analyze" type="button" data-analyze="folder" disabled>Upload &amp; Analyze</button>
+        </section>
+
+        <section class="import-panel" data-panel="files">
+          <p class="import-hint">Import several source files at once. Each file keeps its own name.</p>
+          <label class="import-dropzone">
+            <input type="file" multiple
+              accept=".html,.css,.js,.ts,.jsx,.tsx,.py,.java,.php,.go,.rs,.cs,.sql,.json,.xml,.yaml,.yml,.toml,.ini,.md,.txt"
+              data-input="files" hidden />
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+              <path d="M6.5 3.5h7.5L19 8.5V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5Z"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+            <strong>Choose multiple files</strong>
+            <span class="import-dropzone-note">Select two or more source files</span>
+          </label>
+          <p class="import-filename" data-filename="files" hidden></p>
+          <button class="import-analyze" type="button" data-analyze="files" disabled>Upload &amp; Analyze</button>
+        </section>
+
+        <section class="import-panel" data-panel="single">
+          <p class="import-hint">Import a single source file for analysis.</p>
+          <label class="import-dropzone">
+            <input type="file"
+              accept=".html,.css,.js,.ts,.jsx,.tsx,.py,.java,.php,.go,.rs,.cs,.sql,.json,.xml,.yaml,.yml,.toml,.ini,.md,.txt"
+              data-input="single" hidden />
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+              <path d="M6.5 3.5h7.5L19 8.5V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5Z"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+            <strong>Choose one file</strong>
+            <span class="import-dropzone-note">A single supported source file</span>
+          </label>
+          <p class="import-filename" data-filename="single" hidden></p>
+          <button class="import-analyze" type="button" data-analyze="single" disabled>Upload &amp; Analyze</button>
+        </section>
+
+        <section class="import-panel" data-panel="paste">
+          <p class="import-hint">Paste a code snippet and give it a file name so CodeStory knows the language.</p>
+          <label class="import-field-label" for="importPasteName">File name</label>
+          <input class="import-text-input" id="importPasteName" type="text" data-input="paste-name"
+            placeholder="example snippet.js" autocomplete="off" spellcheck="false" />
+          <textarea class="import-textarea" data-input="paste-code" spellcheck="false"
+            placeholder="Paste your code here..."></textarea>
+          <button class="import-analyze" type="button" data-analyze="paste" disabled>Analyze Snippet</button>
+        </section>
+
+        <section class="import-panel" data-panel="demo">
+          <div class="demo-review" data-demo>
+            <div class="demo-status" data-demo-status hidden></div>
+            <div class="demo-content" data-demo-content hidden></div>
+            <button class="import-analyze" type="button" data-analyze="demo" disabled>Analyze Selected
+              Files</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="import-feedback" data-feedback hidden></div>
+    </div>
+  </div>
+
+    <script src="js/components/ui.js"></script>
+    <script src="js/components/api.js"></script>
+    <script src="js/components/store.js"></script>
+    <script src="js/components/sidebar.js"></script>
+    <script src="js/components/buttons.js"></script>
+    <script src="js/pages/dashboard.js"></script>
+    <script src="js/pages/import.js"></script>
+    <script src="js/pages/views.js"></script>
+    <script src="js/pages/projects.js"></script>
+    <script src="js/pages/explorer.js"></script>
+    <script src="js/pages/settings.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>

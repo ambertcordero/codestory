@@ -173,6 +173,12 @@
         CodeStoryUI.renderMarkdown(story.overview) + '</section>'
       : '';
     const issueCount = Array.isArray(story.verified_issues) ? story.verified_issues.length : 0;
+    const illustrationHtml = chapter.image
+      ? '<figure class="story-illustration"><img src="' + e(CodeStoryAPI.base + chapter.image) +
+        '" alt="Editorial illustration for this chapter" loading="lazy" />' +
+        '<figcaption>AI-generated editorial illustration</figcaption></figure>'
+      : '<div class="story-illustration is-pending" data-image-chapter="' + e(chapter.id || '') + '">' +
+        '<p>Preparing an editorial illustration…</p></div>';
 
     setContent('story',
       '<article class="story-doc is-structured">' + meta + overview + guide +
@@ -192,7 +198,7 @@
             '<div class="story-chapter-text">' + CodeStoryUI.renderMarkdown(chapter.narrative || '') + howItWorks + whyItMatters + '</div>' +
             evidenceHtml +
           '</div>' +
-          chapterVisual + sourceFilesHtml + fileEdgesHtml + relationshipsHtml +
+          illustrationHtml + chapterVisual + sourceFilesHtml + fileEdgesHtml + relationshipsHtml +
         '</section>' +
         '<div class="story-chapter-navigation">' +
           '<button class="workspace-btn" type="button" data-story-nav="previous"' +
@@ -207,6 +213,34 @@
         '</div>' +
         '<div class="story-doc-actions"><button class="workspace-btn" type="button" data-story="regenerate">Regenerate story</button></div>' +
       '</article>');
+
+    if (!chapter.image) requestChapterImage(chapter);
+  }
+
+  /* Requests the editorial illustration for the rendered chapter. The backend
+     caches generated images, so repeat views cost nothing; failures degrade
+     to a short note and never affect the story itself. */
+  function requestChapterImage(chapter) {
+    const project = currentProject();
+    const target = page.querySelector('[data-image-chapter]');
+    if (!project || !chapter || !chapter.id || !CodeStoryAPI.createChapterImage || !target) return;
+    CodeStoryAPI.createChapterImage(project.id, chapter.id).then((data) => {
+      if (!target.isConnected) return;
+      if (data && data.available && data.image_url) {
+        chapter.image = data.image_url;
+        target.outerHTML =
+          '<figure class="story-illustration"><img src="' + CodeStoryUI.escapeHtml(CodeStoryAPI.base + data.image_url) +
+          '" alt="Editorial illustration for this chapter" loading="lazy" />' +
+          '<figcaption>AI-generated editorial illustration</figcaption></figure>';
+      } else {
+        target.outerHTML = '<div class="story-illustration is-unavailable"><p>Illustration unavailable.</p></div>';
+      }
+    }).catch((error) => {
+      if (!target.isConnected) return;
+      target.outerHTML =
+        '<div class="story-illustration is-unavailable"><p>' + CodeStoryUI.escapeHtml(error.message || 'Illustration unavailable.') + '</p>' +
+        '<button class="workspace-btn" type="button" data-story-image="' + CodeStoryUI.escapeHtml(chapter.id) + '">Retry illustration</button></div>';
+    });
   }
 
   function loadVisuals(project) {
@@ -812,6 +846,18 @@
 
   page.addEventListener('click', (event) => {
     if (Visuals && Visuals.handleClick(event, activeVisuals)) return;
+    const imageButton = event.target.closest('[data-story-image]');
+    if (imageButton && activeStory && Array.isArray(activeStory.chapters)) {
+      const chapter = activeStory.chapters.find(
+        (item) => item.id === imageButton.getAttribute('data-story-image'));
+      const container = imageButton.closest('.story-illustration');
+      if (chapter && container) {
+        container.outerHTML = '<div class="story-illustration is-pending" data-image-chapter="' +
+          CodeStoryUI.escapeHtml(chapter.id) + '"><p>Preparing an editorial illustration…</p></div>';
+        requestChapterImage(chapter);
+      }
+      return;
+    }
     const storyButton = event.target.closest('[data-story]');
     if (storyButton) generateStory();
     const chapterButton = event.target.closest('[data-story-nav]');

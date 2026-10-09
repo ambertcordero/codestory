@@ -13,6 +13,7 @@
   const badge = document.getElementById('settingsAiStatus');
   const hostInput = document.getElementById('settingsOllamaHost');
   const modelInput = document.getElementById('settingsOllamaModel');
+  const imageModelInput = document.getElementById('settingsImageModel');
   const checkButton = document.getElementById('settingsCheckButton');
   const modelList = document.getElementById('settingsModelList');
   const aiHelp = document.getElementById('settingsAiHelp');
@@ -85,6 +86,9 @@
   function applySettings(settings) {
     hostInput.value = settings.ollama_host || '';
     modelInput.value = settings.ollama_model || '';
+    if (imageModelInput) {
+      imageModelInput.value = settings.image_model || '';
+    }
     excludeGenerated.checked = settings.exclude_generated !== false;
     excludeDependencies.checked = settings.exclude_dependencies !== false;
     flagUnsupported.checked = settings.flag_unsupported !== false;
@@ -130,6 +134,7 @@
     const payload = {
       ollama_host: hostInput.value.trim(),
       ollama_model: modelInput.value.trim(),
+      image_model: imageModelInput ? imageModelInput.value.trim() : null,
       exclude_generated: excludeGenerated.checked,
       exclude_dependencies: excludeDependencies.checked,
       flag_unsupported: flagUnsupported.checked,

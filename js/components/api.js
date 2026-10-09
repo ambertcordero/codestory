@@ -63,7 +63,10 @@
     visuals: (projectId) => request('/api/projects/' + id(projectId) + '/visuals'),
     getStory: (projectId) => request('/api/projects/' + id(projectId) + '/story'),
     createStory: (projectId) => request('/api/projects/' + id(projectId) + '/story', { method: 'POST' }),
+    createChapterImage: (projectId, chapterId) =>
+      request('/api/projects/' + id(projectId) + '/story/images/' + encodeURIComponent(chapterId), { method: 'POST' }),
     aiStatus: () => request('/api/ai/status'),
+    imageStatus: () => request('/api/ai/images/status'),
     getSettings: () => request('/api/settings'),
     updateSettings: (payload) => request('/api/settings', jsonBody('PUT', payload)),
     clearData: () => request('/api/data', { method: 'DELETE' }),

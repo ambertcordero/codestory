@@ -21,8 +21,10 @@ from typing import List, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+import images
 import ollama
 import static_analysis
 import store
@@ -64,6 +66,7 @@ class Snippet(BaseModel):
 class SettingsUpdate(BaseModel):
     ollama_host: Optional[str] = None
     ollama_model: Optional[str] = None
+    image_model: Optional[str] = None
     exclude_generated: Optional[bool] = None
     exclude_dependencies: Optional[bool] = None
     flag_unsupported: Optional[bool] = None
@@ -423,6 +426,64 @@ def create_story(project_id: str) -> dict:
 @app.get("/api/ai/status")
 def ai_status() -> dict:
     return ollama.status()
+
+
+@app.get("/api/ai/images/status")
+def ai_image_status() -> dict:
+    """Whether chapter illustrations can be generated (optional feature)."""
+    return images.status()
+
+
+@app.get("/api/projects/{project_id}/story/images/{chapter_id}")
+def get_chapter_image(project_id: str, chapter_id: str):
+    """Serve a previously generated chapter illustration."""
+    if store.get_project(project_id) is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    path = store.story_image_path(project_id, chapter_id)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found.")
+    return FileResponse(path, media_type="image/png")
+
+
+@app.post("/api/projects/{project_id}/story/images/{chapter_id}")
+def create_chapter_image(project_id: str, chapter_id: str) -> dict:
+    """Generate (or reuse) the editorial illustration for one story chapter."""
+    record = store.get_project(project_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    story = store.load_story(project_id)
+    if story is None:
+        raise HTTPException(status_code=400, detail="Generate the story first.")
+    chapter = next(
+        (item for item in story.get("chapters", []) if item.get("id") == chapter_id),
+        None,
+    )
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found.")
+
+    image_url = f"/api/projects/{project_id}/story/images/{chapter_id}"
+    path = store.story_image_path(project_id, chapter_id)
+    if path.is_file():
+        chapter["image"] = image_url
+        store.save_story(project_id, story)
+        return {"available": True, "image_url": image_url}
+
+    status = images.status()
+    if not status["configured"]:
+        raise HTTPException(status_code=503, detail=status["error"])
+
+    result = images.generate(images.chapter_prompt(record, chapter))
+    if not result.get("ok"):
+        raise HTTPException(
+            status_code=503,
+            detail=result.get("error") or "The image model could not generate an illustration.",
+        )
+
+    path.write_bytes(result["png"])
+    chapter["image"] = image_url
+    chapter["image_model"] = result.get("model")
+    store.save_story(project_id, story)
+    return {"available": True, "image_url": image_url}
 
 
 # --------------------------------------------------------------------------- #

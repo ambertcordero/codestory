@@ -312,19 +312,20 @@ def build_prompt(record: dict, files: list[dict], relationships: list[dict], iss
         issue_lines = ["- no static-analysis findings"]
 
     header = (
-        "You are a technical writer explaining a real codebase to a developer.\n"
+        "You are a storyteller turning a real codebase into a narrative that plays "
+        "out like the software running in real life.\n"
         "Explain ONLY what the source code below actually shows. Never invent files, "
         "symbols, functions, classes, variables or relationships.\n\n"
         "Return a single JSON object and NOTHING else (no markdown fences, no prose "
         "before or after). Use this exact shape:\n"
         "{\n"
         '  "title": "project title",\n'
-        '  "overview": "one short paragraph grounded in the source",\n'
+        '  "overview": "one short paragraph introducing the cast and the world of this app",\n'
         '  "chapters": [\n'
         "    {\n"
         '      "id": "chapter-1",\n'
         '      "title": "Chapter title",\n'
-        '      "narrative": "what happens and why it matters",\n'
+        '      "narrative": "a scene: real people using this part of the app, in order",\n'
         '      "how_it_works": "optional: the flow between components",\n'
         '      "why_it_matters": "optional: the role of this part",\n'
         '      "source_files": ["path/from/the/list"],\n'
@@ -334,6 +335,16 @@ def build_prompt(record: dict, files: list[dict], relationships: list[dict], iss
         "  ]\n"
         "}\n\n"
         "Rules:\n"
+        "- Order the chapters to follow how the app actually runs: how it starts, each "
+        "main user flow in the order it happens, and how a run ends. Reading chapter "
+        "1 to the last should feel like watching the whole system work once.\n"
+        "- Write each narrative as a SCENE: name the real people who would use this "
+        "part (a cashier and customer for a POS, a guest and receptionist for a "
+        "booking app, a developer for a CLI, a client app for an API) and narrate "
+        "what they do and what the code does in response. Pick personas only where "
+        "the code clearly supports them.\n"
+        "- Keep narratives pure prose: NO code, NO syntax, NO inline fragments. "
+        "Real code only ever appears in 'evidence' snippets.\n"
         "- Create as many chapters as the project actually needs to explain it end to "
         "end. A small app may need 4-6; a larger system needs more. Do not pad with "
         "filler and do not merge unrelated concerns just to shorten the list.\n"
@@ -348,7 +359,7 @@ def build_prompt(record: dict, files: list[dict], relationships: list[dict], iss
         f"Files: {len(files)}\n\n"
         "File list and detected symbols:\n"
         + "\n".join(catalogue) + "\n\n"
-        "Verified cross-file references (static analysis):\n"
+        "Verified cross-file references (static analysis — the traced flows):\n"
         + "\n".join(reference_lines) + "\n\n"
         "Verified static-analysis findings:\n"
         + "\n".join(issue_lines) + "\n\n"
@@ -380,18 +391,23 @@ def _chapter_prompt(record: dict, outline_chapter: dict, chapter_files: list[dic
         catalogue.append(f"- {item['path']} ({item.get('language', 'file')}): {symbol_text}")
 
     header = (
-        "You are a technical writer explaining a real codebase to a developer.\n"
+        "You are a storyteller turning a real codebase into a narrative that plays "
+        "out like the software running in real life.\n"
         "Write ONE chapter of a larger story. Explain ONLY what the source code below "
         "actually shows. Never invent files, symbols or relationships.\n\n"
         "Return a single JSON object and NOTHING else with this shape:\n"
         "{\n"
-        '  "narrative": "what this part of the system does and why it matters",\n'
+        '  "narrative": "a scene: real people using this part of the app, in order",\n'
         '  "how_it_works": "the flow between components",\n'
         '  "why_it_matters": "the role of this part",\n'
         '  "evidence": [{"file": "path/from/the/list", "symbol": "existing symbol name or empty", "snippet": "copy a few real lines verbatim"}],\n'
         '  "relationships": [{"from": "file or symbol", "to": "file or symbol", "description": "what the link means"}]\n'
         "}\n\n"
         "Rules:\n"
+        "- Write the narrative as a SCENE: name the real people who would use this "
+        "part and narrate what they do and what the code does in response.\n"
+        "- Keep the narrative pure prose: NO code, NO syntax, NO inline fragments. "
+        "Real code only ever appears in 'evidence' snippets.\n"
         "- Every file you mention MUST appear in the file list below.\n"
         "- Copy evidence snippets VERBATIM from the source shown.\n"
         "- Keep the JSON valid: double quotes, no trailing commas, no comments.\n\n"
@@ -435,7 +451,7 @@ def _outline_prompt(record: dict, files: list[dict], relationships: list[dict], 
         f"- {edge.get('from')} references {edge.get('to')}" for edge in relationships
     ] or ["- no cross-file references detected"]
     return (
-        "You are a technical writer planning a chapter-based story of a real codebase.\n"
+        "You are a storyteller planning a scene-based story of a real codebase.\n"
         "The project is too large to show every file in full, so use the complete file "
         "list and symbol catalogue below to decide which chapters the story needs.\n\n"
         "Return a single JSON object and NOTHING else with this shape:\n"
@@ -448,6 +464,8 @@ def _outline_prompt(record: dict, files: list[dict], relationships: list[dict], 
         "- Choose as many chapters as the project needs to explain it end to end: "
         "purpose, entry points, key components, workflows, business rules, "
         "integrations, and a final chapter on verified issues and improvements.\n"
+        "- Order the chapters to follow how the app actually runs: how it starts, "
+        "each main user flow in the order it happens, and how a run ends.\n"
         "- Every source_files entry MUST come from the file list below.\n"
         "- Do not invent files, modules or features that are not in the catalogue.\n"
         "- Keep the JSON valid: double quotes, no trailing commas, no comments.\n\n"

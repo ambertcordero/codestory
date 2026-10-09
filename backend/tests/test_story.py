@@ -56,8 +56,8 @@ def _ok(text, model="test-model"):
     return {"ok": True, "model": model, "text": text, "error": None}
 
 
-def _fail(error):
-    return {"ok": False, "model": "test-model", "error": error}
+def _fail(error, status=None):
+    return {"ok": False, "model": "test-model", "status": status, "error": error}
 
 
 class _FakeOllama:
@@ -115,7 +115,7 @@ class GenerateTest(unittest.TestCase):
 
     def test_http_error_retries_with_plain_json_format(self):
         with _FakeOllama([
-            _fail("Ollama HTTP 400: invalid format value"),
+            _fail("Ollama HTTP 400: invalid format value", status=400),
             _ok(MODEL_JSON),
         ]) as fake:
             result = story.generate(RECORD, FILES)
@@ -123,6 +123,52 @@ class GenerateTest(unittest.TestCase):
         self.assertEqual(len(fake.formats), 2)
         self.assertIs(fake.formats[0], story.STORY_RESPONSE_SCHEMA)
         self.assertEqual(fake.formats[1], "json")
+
+    def test_missing_model_error_does_not_retry(self):
+        with _FakeOllama([
+            _fail("Ollama HTTP 404: model 'test-model' not found", status=404),
+        ]) as fake:
+            with self.assertRaises(story.StoryError) as ctx:
+                story.generate(RECORD, FILES)
+        self.assertEqual(len(fake.formats), 1)
+        self.assertIn("not found", ctx.exception.message)
+
+
+class OllamaStatusTest(unittest.TestCase):
+    """status() must report availability for the exact model generate() sends."""
+
+    def _status_with_models(self, installed, configured):
+        real_request = ollama._request
+        real_model = ollama._model
+        try:
+            ollama._model = lambda: configured
+            ollama._request = lambda path, payload, timeout: {
+                "models": [{"name": name} for name in installed]
+            }
+            return ollama.status()
+        finally:
+            ollama._request = real_request
+            ollama._model = real_model
+
+    def test_exact_tag_match_is_available(self):
+        status = self._status_with_models(
+            ["qwen2.5-coder:3b", "llama3:latest"], "qwen2.5-coder:3b")
+        self.assertTrue(status["model_available"])
+
+    def test_different_tag_is_not_available(self):
+        status = self._status_with_models(
+            ["qwen2.5-coder:7b"], "qwen2.5-coder:3b")
+        self.assertFalse(status["model_available"])
+
+    def test_untagged_model_resolves_to_latest(self):
+        status = self._status_with_models(
+            ["qwen2.5-coder:latest"], "qwen2.5-coder")
+        self.assertTrue(status["model_available"])
+
+    def test_untagged_model_missing_latest_tag(self):
+        status = self._status_with_models(
+            ["qwen2.5-coder:3b"], "qwen2.5-coder")
+        self.assertFalse(status["model_available"])
 
 
 class ParseResponseTest(unittest.TestCase):

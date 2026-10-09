@@ -248,9 +248,10 @@
         '<button class="workspace-btn primary" type="button" data-story="generate">Generate story</button>' +
       '</div>');
     if (!CodeStoryAPI.aiStatus) return;
+    const note = page.querySelector('[data-ai-status]');
     CodeStoryAPI.aiStatus().then((status) => {
-      const note = page.querySelector('[data-ai-status]');
-      if (!note) return;
+      // A newer render may have replaced this element; ignore stale results.
+      if (!note || !note.isConnected) return;
       if (!status || !status.connected) {
         note.innerHTML = '<div class="workspace-note"><strong>Local AI is not connected.</strong>' + OLLAMA_HELP + '</div>';
       } else if (status.model_available === false) {

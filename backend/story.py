@@ -600,7 +600,11 @@ def generate(record: dict, files: list[dict]) -> dict:
 
     prompt = build_prompt(record, files, relationships, issues)
     result = ollama.generate(prompt, response_format=STORY_RESPONSE_SCHEMA)
-    if not result.get("ok") and (result.get("error") or "").startswith("Ollama HTTP"):
+    if (
+        not result.get("ok")
+        and result.get("status") == 400
+        and "format" in (result.get("error") or "").lower()
+    ):
         # Ollama before 0.5 only accepts format="json", not a JSON schema.
         result = ollama.generate(prompt, response_format="json")
     if not result.get("ok"):

@@ -57,10 +57,10 @@ def status() -> dict:
         }
 
     models = [item.get("name", "") for item in data.get("models", [])]
-    base = selected.split(":")[0]
-    available = any(
-        name == selected or name.split(":")[0] == base for name in models
-    )
+    # Generation requests the configured model unchanged; an untagged name
+    # resolves to the ":latest" tag, so only that alias counts as available.
+    effective = selected if ":" in selected else selected + ":latest"
+    available = effective in models
     return {
         "connected": True,
         "host": _host(),
@@ -94,7 +94,12 @@ def generate(
             detail = error.read().decode("utf-8", "replace")
         except OSError:
             pass
-        return {"ok": False, "model": chosen, "error": f"Ollama HTTP {error.code}: {detail[:300]}"}
+        return {
+            "ok": False,
+            "model": chosen,
+            "status": error.code,
+            "error": f"Ollama HTTP {error.code}: {detail[:300]}",
+        }
     except (urllib.error.URLError, OSError, ValueError) as error:
         return {
             "ok": False,

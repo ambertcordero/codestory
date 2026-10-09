@@ -230,16 +230,38 @@
         renderStoryDocument(activeStory);
       } else {
         setStatus('story', null);
-        setContent('story',
-          '<div class="workspace-empty">' +
-            '<h3>No story yet</h3>' +
-            '<p>Generate a narrative walkthrough of this project using your local AI model.</p>' +
-            '<button class="workspace-btn primary" type="button" data-story="generate">Generate story</button>' +
-          '</div>');
+        renderEmptyStory();
       }
     } catch (error) {
       setStatus('story', 'error', '<h3>Could not load the story</h3><p>' + CodeStoryUI.escapeHtml(error.message) + '</p>');
     }
+  }
+
+  /* Renders the "no story yet" state and checks the real AI connection so a
+     missing Ollama is explained before the user even clicks Generate. */
+  function renderEmptyStory() {
+    setContent('story',
+      '<div class="workspace-empty">' +
+        '<h3>No story yet</h3>' +
+        '<p>Generate a narrative walkthrough of this project using your local AI model.</p>' +
+        '<div data-ai-status></div>' +
+        '<button class="workspace-btn primary" type="button" data-story="generate">Generate story</button>' +
+      '</div>');
+    if (!CodeStoryAPI.aiStatus) return;
+    const note = page.querySelector('[data-ai-status]');
+    CodeStoryAPI.aiStatus().then((status) => {
+      // A newer render may have replaced this element; ignore stale results.
+      if (!note || !note.isConnected) return;
+      if (!status || !status.connected) {
+        note.innerHTML = '<div class="workspace-note"><strong>Local AI is not connected.</strong>' + OLLAMA_HELP + '</div>';
+      } else if (status.model_available === false) {
+        note.innerHTML = '<div class="workspace-note"><strong>The configured model <code>' +
+          CodeStoryUI.escapeHtml(status.model || '') + '</code> is not installed.</strong>' +
+          '<p>Run <code>ollama pull ' + CodeStoryUI.escapeHtml(status.model || '') + '</code>, or pick an installed model in Settings.</p></div>';
+      }
+    }).catch(() => {
+      /* The status check is best-effort; the Generate click reports the real error. */
+    });
   }
 
   async function generateStory() {

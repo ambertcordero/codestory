@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 
 import ollama
 import static_analysis
+import visuals
 
 MAX_CHAPTERS = 8
 MAX_EVIDENCE_PER_CHAPTER = 4
@@ -452,7 +453,7 @@ def _build_evidence(raw_evidence, grounding: _Grounding, chapter_files: set[str]
         if key in seen:
             continue
         seen.add(key)
-        evidence.append({"file": path, "symbol": symbol, "line": line, "snippet": snippet, "grounded": True})
+        evidence.append({"file": path, "symbol": symbol, "line": line, "snippet": visuals.redact(snippet), "grounded": True})
         chapter_files.add(path)
         if len(evidence) >= MAX_EVIDENCE_PER_CHAPTER:
             break

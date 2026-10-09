@@ -121,7 +121,8 @@ codestory/
 │       ├── dashboard.css   Page styles for Overview, Issues and System Map
 │       ├── splash.css      Splash screen styles
 │       ├── import.css      Import dialog styles
-│       └── workspace.css   My Projects, My Explorer and Settings styles
+│       ├── workspace.css   My Projects, My Explorer and Settings styles
+│       └── story-visuals.css Story diagrams, workflow timeline and code panels
 ├── js/
 │   ├── main.js             App-level wiring: shortcuts, project selector, search
 │   ├── components/
@@ -129,12 +130,14 @@ codestory/
 │   │   ├── api.js          Client for the local backend
 │   │   ├── store.js        localStorage: selected project and UI prefs
 │   │   ├── sidebar.js      Sidebar toggle and view navigation
-│   │   └── buttons.js      Chapter / step / pill selection and prev-next nav
+│   │   ├── buttons.js      Chapter / step / pill selection and prev-next nav
+│   │   └── diagrams.js     SVG graph, code panel and highlighter for Story visuals
 │   └── pages/
 │       ├── dashboard.js    Section tab switching and the System Map view
 │       ├── import.js       Import dialog: methods, file collection, validation
 │       ├── views.js        Top-level view switching (Home ↔ workspace)
 │       ├── projects.js     My Projects view
+│       ├── story-visuals.js Story Visual guide and per-chapter visuals
 │       ├── explorer.js     My Explorer view (story / map / issues)
 │       └── settings.js     Settings view
 ├── backend/
@@ -168,6 +171,7 @@ codestory/
 | POST | `/api/projects/{id}/reanalyze` | Re-run validation over the stored files. |
 | GET | `/api/projects/{id}/map` | Build the import relationship graph. |
 | GET | `/api/projects/{id}/issues` | Run static checks and return findings. |
+| GET | `/api/projects/{id}/visuals` | Static diagram data for the Story: file architecture, JS call graph, event entry points and (for point-of-sale projects) the traced checkout workflow. |
 | GET | `/api/projects/{id}/story` | Read the cached story (if any). |
 | POST | `/api/projects/{id}/story` | Generate a story with local Ollama (`503` when unavailable). |
 | GET | `/api/ai/status` | Real Ollama connection status. |
@@ -180,11 +184,11 @@ codestory/
   HTML, CSS and JavaScript.
 - Scripts are classic (non-module) and load in dependency order from
   `dashboard.html`: `ui.js` → `api.js` → `store.js` → `sidebar.js` →
-  `buttons.js` → `dashboard.js` → `import.js` → `views.js` → `projects.js` →
-  `explorer.js` → `settings.js` → `main.js`.
+  `buttons.js` → `diagrams.js` → `dashboard.js` → `import.js` → `views.js` →
+  `projects.js` → `story-visuals.js` → `explorer.js` → `settings.js` → `main.js`.
 - Stylesheets load in specificity order:
   `main.css` → `layout.css` → `components.css` → `pages/dashboard.css` →
-  `pages/import.css` → `pages/workspace.css`.
+  `pages/import.css` → `pages/workspace.css` → `pages/story-visuals.css`.
 - Keep page-specific CSS/JS inside the matching `pages/` folders and shared
   code at the top level of `css/` and `js/`.
 
@@ -194,3 +198,19 @@ codestory/
   they live as panels inside `dashboard.html` and switch via the section tabs.
 - No `assets/` folder is included because the app uses inline SVG icons, so
   there are no local asset files to store.
+
+## Story visuals
+
+The My Explorer Story adds a collapsible **Visual guide** (architecture and
+workflow diagrams), one visual per chapter (module diagram, workflow segment,
+data flow, call diagram or findings summary) and dark code panels with real
+line numbers beside each chapter's text. The data comes from
+`backend/visuals.py`, which reads the stored files as text:
+
+- File links reuse `static_analysis.build_map`, plus the names each import brings in.
+- Function links come from JavaScript call sites, `new` expressions and
+  `addEventListener` handlers. Dynamic dispatch and other languages are not traced.
+- Workflow transitions are marked *Inferred* when no call or wired listener links two stages.
+- Likely secrets are redacted from every snippet.
+
+Backend tests: `cd backend && python -m unittest discover tests`.

@@ -60,6 +60,7 @@
     reanalyze: (projectId) => request('/api/projects/' + id(projectId) + '/reanalyze', { method: 'POST' }),
     map: (projectId) => request('/api/projects/' + id(projectId) + '/map'),
     issues: (projectId) => request('/api/projects/' + id(projectId) + '/issues'),
+    visuals: (projectId) => request('/api/projects/' + id(projectId) + '/visuals'),
     getStory: (projectId) => request('/api/projects/' + id(projectId) + '/story'),
     createStory: (projectId) => request('/api/projects/' + id(projectId) + '/story', { method: 'POST' }),
     aiStatus: () => request('/api/ai/status'),

@@ -27,6 +27,7 @@ import ollama
 import static_analysis
 import store
 import story as story_module
+import visuals
 from analyzer import (
     MAX_FILE_SIZE,
     SUPPORTED_EXTENSIONS,
@@ -347,6 +348,16 @@ def project_issues(project_id: str) -> dict:
         key: value for key, value in record.get("skipped", {}).items() if key != "unsupported"
     }
     return static_analysis.detect_issues(files, skipped)
+
+
+@app.get("/api/projects/{project_id}/visuals")
+def project_visuals(project_id: str) -> dict:
+    """Static diagram data (architecture, call graph, workflow) for the Story."""
+    record = store.get_project(project_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    files = store.read_project_files(project_id)
+    return visuals.build(record, files)
 
 
 # --------------------------------------------------------------------------- #

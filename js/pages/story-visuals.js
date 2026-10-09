@@ -115,7 +115,14 @@
     if (!node) return '';
     const outgoing = visuals.architecture.edges.filter((edge) => edge.from === path);
     const incoming = visuals.architecture.edges.filter((edge) => edge.to === path);
-    const symbols = Object.values(visuals.symbols || {}).filter((sym) => sym.file === path && sym.kind !== 'module' && sym.kind !== 'handler');
+    const listed = Array.isArray(node.symbols) ? node.symbols : Object.values(visuals.symbols || {});
+    const symbols = listed.filter((sym) => sym.file === undefined || sym.file === path)
+      .filter((sym) => sym.kind !== 'module' && sym.kind !== 'handler');
+    const symbolChips = symbols.map((sym) => {
+      if (sym.id && symbol(visuals, sym.id)) return chip(visuals, sym.id);
+      return '<span class="visual-chip is-static kind-' + e(sym.kind || 'symbol') + '">' +
+        '<span>' + e(sym.name) + '</span><code>' + e(location(baseName(path), sym.line)) + '</code></span>';
+    }).join('');
     const edgeRow = (edge, other) =>
       '<li><code>' + e(location(edge.from, edge.line)) + '</code> ' +
       (edge.statement ? '<code class="visual-statement">' + e(D().truncate(edge.statement, 90)) + '</code>' : '') +
@@ -129,7 +136,7 @@
         (incoming.length ? '<p class="visual-detail-label">Referenced by</p><ul>' + incoming.map((edge) => edgeRow(edge, edge.from)).join('') + '</ul>' : '') +
         (!outgoing.length && !incoming.length ? '<p class="visual-muted">No import, script or stylesheet link was detected for this file.</p>' : '') +
         (symbols.length ? '<p class="visual-detail-label">Symbols found</p><div class="visual-chip-row">' +
-          symbols.map((sym) => chip(visuals, sym.id)).join('') + '</div>' : '') +
+          symbolChips + '</div>' : '') +
       '</div>'
     );
   }
@@ -142,29 +149,89 @@
   /* Architecture                                                        */
   /* ------------------------------------------------------------------ */
 
+  /* Longest-path layering on the condensation graph: files that import each
+     other form one strongly connected component and share a layer, so cycles
+     cannot stretch the diagram, and every used column holds at least one node. */
   function architectureLayers(nodes, edges) {
     const ids = nodes.map((node) => node.id);
     const linked = new Set();
-    edges.forEach((edge) => { linked.add(edge.from); linked.add(edge.to); });
-    const incoming = new Set(edges.map((edge) => edge.to));
-    const layer = {};
-    ids.filter((id) => linked.has(id) && !incoming.has(id)).forEach((id) => { layer[id] = 0; });
-    if (!Object.keys(layer).length && linked.size) layer[ids.find((id) => linked.has(id))] = 0;
-    for (let round = 0; round < ids.length; round += 1) {
-      let changed = false;
-      edges.forEach((edge) => {
-        if (layer[edge.from] === undefined) return;
-        const next = layer[edge.from] + 1;
-        if (next < ids.length && (layer[edge.to] === undefined || layer[edge.to] < next)) {
-          layer[edge.to] = next;
-          changed = true;
+    const adjacency = {};
+    ids.forEach((id) => { adjacency[id] = []; });
+    edges.forEach((edge) => {
+      linked.add(edge.from);
+      linked.add(edge.to);
+      if (adjacency[edge.from] && adjacency[edge.to] !== undefined && adjacency[edge.from].indexOf(edge.to) === -1) {
+        adjacency[edge.from].push(edge.to);
+      }
+    });
+
+    /* Tarjan's algorithm; components come out in reverse topological order. */
+    const index = {};
+    const lowlink = {};
+    const onStack = {};
+    const component = {};
+    const stack = [];
+    const components = [];
+    let counter = 0;
+    const visit = (root) => {
+      index[root] = lowlink[root] = counter;
+      counter += 1;
+      stack.push(root);
+      onStack[root] = true;
+      const work = [[root, 0]];
+      while (work.length) {
+        const frame = work[work.length - 1];
+        const v = frame[0];
+        if (frame[1] < adjacency[v].length) {
+          const w = adjacency[v][frame[1]];
+          frame[1] += 1;
+          if (index[w] === undefined) {
+            index[w] = lowlink[w] = counter;
+            counter += 1;
+            stack.push(w);
+            onStack[w] = true;
+            work.push([w, 0]);
+          } else if (onStack[w]) {
+            lowlink[v] = Math.min(lowlink[v], index[w]);
+          }
+        } else {
+          work.pop();
+          if (work.length) {
+            const parent = work[work.length - 1][0];
+            lowlink[parent] = Math.min(lowlink[parent], lowlink[v]);
+          }
+          if (lowlink[v] === index[v]) {
+            const comp = [];
+            let w;
+            do {
+              w = stack.pop();
+              onStack[w] = false;
+              component[w] = components.length;
+              comp.push(w);
+            } while (w !== v);
+            components.push(comp);
+          }
         }
+      }
+    };
+    ids.forEach((id) => { if (index[id] === undefined) visit(id); });
+
+    /* Predecessors were emitted later, so walking backwards is topological. */
+    const compLayer = components.map(() => 0);
+    for (let ci = components.length - 1; ci >= 0; ci -= 1) {
+      components[ci].forEach((id) => {
+        adjacency[id].forEach((to) => {
+          const cj = component[to];
+          if (cj !== ci && compLayer[cj] < compLayer[ci] + 1) compLayer[cj] = compLayer[ci] + 1;
+        });
       });
-      if (!changed) break;
     }
-    ids.forEach((id) => { if (linked.has(id) && layer[id] === undefined) layer[id] = 0; });
-    const max = Math.max(-1, ...Object.values(layer));
-    const unlinked = ids.filter((id) => layer[id] === undefined);
+
+    const layer = {};
+    ids.forEach((id) => { if (linked.has(id)) layer[id] = compLayer[component[id]]; });
+    const max = Math.max(-1, ...components.map((comp, ci) =>
+      comp.some((id) => linked.has(id)) ? compLayer[ci] : -1));
+    const unlinked = ids.filter((id) => !linked.has(id));
     unlinked.forEach((id) => { layer[id] = max + 1; });
     return { layer: layer, max: max, hasUnlinked: unlinked.length > 0 };
   }

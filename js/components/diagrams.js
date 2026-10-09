@@ -95,7 +95,7 @@
         '</figcaption>' +
         '<pre class="code-panel-body"><code>' + rows + '</code></pre>' +
         (options.truncated ? '<p class="code-panel-foot">Excerpt continues in the source file.</p>' : '') +
-        (options.caption ? '<p class="code-panel-foot">' + options.caption + '</p>' : '') +
+        (options.caption ? '<p class="code-panel-foot">' + e(options.caption) + '</p>' : '') +
       '</figure>'
     );
   }

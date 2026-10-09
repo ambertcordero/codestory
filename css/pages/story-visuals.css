@@ -278,6 +278,8 @@
 .visual-chip:hover, .visual-chip.is-selected { border-color: var(--blue); background: var(--blue-soft); }
 .visual-chip.is-primary { border-color: rgba(45, 92, 142, 0.45); font-weight: 600; }
 .visual-chip.is-supporting { font-size: 0.7rem; opacity: 0.85; }
+.visual-chip.is-static { cursor: default; }
+.visual-chip.is-static:hover { border-color: var(--border); background: #fff; }
 
 .visual-badge {
   display: inline-block;

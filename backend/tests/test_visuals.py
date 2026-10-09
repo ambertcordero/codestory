@@ -81,5 +81,158 @@ class SimplePosVisualsTest(unittest.TestCase):
         self.assertNotIn("abcd1234secret", text)
 
 
+def js_file(path: str, content: str) -> dict:
+    return {
+        "path": path,
+        "language": "JavaScript",
+        "content": content,
+        "lines": content.count("\n") + 1,
+        "size": len(content.encode("utf-8")),
+    }
+
+
+def edge_set(data: dict) -> set:
+    return {(c["from"], c["to"], c["kind"]) for c in data["calls"]}
+
+
+class CallGraphFixesTest(unittest.TestCase):
+    """Regression coverage for review findings on the static call graph."""
+
+    def test_variable_reuse_scopes_instance_bindings(self):
+        source = """
+class First {
+  run() {}
+}
+class Second {
+  run() {}
+}
+function a() {
+  const obj = new First();
+  obj.run();
+}
+function b() {
+  const obj = new Second();
+  obj.run();
+}
+"""
+        data = visuals.build({"name": "reuse"}, [js_file("x.js", source)])
+        edges = edge_set(data)
+        self.assertIn(("x.js#a", "x.js#First.run", "call"), edges)
+        self.assertIn(("x.js#b", "x.js#Second.run", "call"), edges)
+        self.assertNotIn(("x.js#a", "x.js#Second.run", "call"), edges)
+        self.assertNotIn(("x.js#b", "x.js#First.run", "call"), edges)
+
+    def test_module_scope_binding_still_resolves_inside_functions(self):
+        source = """
+class Cart { add() {} }
+const cart = new Cart();
+function go() {
+  cart.add();
+}
+"""
+        data = visuals.build({"name": "scope"}, [js_file("x.js", source)])
+        self.assertIn(("x.js#go", "x.js#Cart.add", "call"), edge_set(data))
+
+    def test_default_import_calls_resolve(self):
+        files = [
+            js_file("a.js", "export default function start() { return 1; }\n"),
+            js_file("b.js", "import start from './a.js';\nstart();\n"),
+        ]
+        data = visuals.build({"name": "default"}, files)
+        edges = edge_set(data)
+        self.assertTrue(any(to == "a.js#start" and kind == "call" for _f, to, kind in edges), edges)
+
+    def test_named_import_still_resolves(self):
+        files = [
+            js_file("a.js", "export function helper() { return 1; }\n"),
+            js_file("b.js", "import { helper } from './a.js';\nhelper();\n"),
+        ]
+        data = visuals.build({"name": "named"}, files)
+        self.assertTrue(any(to == "a.js#helper" for _f, to, _k in edge_set(data)))
+
+    def test_template_expression_calls_are_traced(self):
+        source = """
+function formatName(user) { return user.name; }
+function label(user) {
+  return `hello ${formatName(user)} and ${formatName({ name: 'x' })}`;
+}
+"""
+        data = visuals.build({"name": "tpl"}, [js_file("x.js", source)])
+        self.assertIn(("x.js#label", "x.js#formatName", "call"), edge_set(data))
+
+    def test_stored_reference_is_not_a_flow_step(self):
+        source = """
+function draw() {}
+const saved = draw;
+register(draw);
+"""
+        data = visuals.build({"name": "refs"}, [js_file("x.js", source)])
+        edges = edge_set(data)
+        module = "x.js#(module)"
+        self.assertIn((module, "x.js#draw", "callback"), edges)
+        callback_lines = [c["line"] for c in data["calls"]
+                          if c["to"] == "x.js#draw" and c["kind"] == "callback"]
+        self.assertEqual(callback_lines, [4], data["calls"])
+
+    def test_non_js_file_keeps_symbols_on_architecture_node(self):
+        files = [{
+            "path": "main.py", "language": "Python",
+            "content": "def serve():\n    pass\n",
+            "lines": 2, "size": 22,
+        }]
+        data = visuals.build({"name": "py"}, files)
+        node = next(n for n in data["architecture"]["nodes"] if n["id"] == "main.py")
+        names = [s["name"] for s in node["symbols"]]
+        self.assertIn("serve", names)
+
+
+class DomEvidenceTest(unittest.TestCase):
+    """_dom_evidence only verifies real writes, not unrelated references."""
+
+    LISTENER = "checkoutButton.addEventListener('click', checkout);\n"
+
+    def build_module(self, body: str) -> visuals._Module:
+        source = (
+            "const checkoutButton = document.getElementById('checkoutButton');\n"
+            "function checkout() {}\n"
+            + body
+            + self.LISTENER
+        )
+        module = visuals._Module("app.js", source)
+        module.parse()
+        return module
+
+    def evidence_for(self, module: visuals._Module):
+        trigger = {
+            "file": "app.js",
+            "line": module.content.count("\n"),
+            "event": "click",
+            "selectors": [],
+        }
+        render = module.symbols["app.js#renderCart"]
+        return visuals._dom_evidence({render["id"]}, trigger, module.symbols, {"app.js": module})
+
+    def test_unrelated_read_stays_inferred(self):
+        module = self.build_module(
+            "function renderCart() {\n  console.log(checkoutButton.disabled);\n}\n"
+        )
+        self.assertIsNone(self.evidence_for(module))
+
+    def test_element_write_verifies(self):
+        module = self.build_module(
+            "function renderCart() {\n  checkoutButton.disabled = true;\n}\n"
+        )
+        evidence = self.evidence_for(module)
+        self.assertIsNotNone(evidence)
+        self.assertEqual(evidence["detail"], "updates checkoutButton")
+        self.assertEqual(evidence["line"], 4)
+
+    def test_innerHTML_write_verifies(self):
+        module = self.build_module(
+            "function renderCart() {\n  checkoutButton.innerHTML = '<b>x</b>';\n}\n"
+        )
+        self.assertIsNotNone(self.evidence_for(module))
+
+
 if __name__ == "__main__":
     unittest.main()

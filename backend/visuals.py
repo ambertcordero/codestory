@@ -71,50 +71,90 @@ def redact(text: str) -> str:
 # --------------------------------------------------------------------------- #
 
 def _mask(src: str) -> str:
-    """Blank out comments and string contents, keeping offsets and newlines."""
+    """Blank out comments and string contents, keeping offsets and newlines.
+    Code inside ${...} template expressions stays visible so calls there are
+    still found."""
     out = list(src)
-    i = 0
-    n = len(src)
-    while i < n:
+    _mask_code(src, out, 0, len(src))
+    return "".join(out)
+
+
+def _mask_code(src: str, out: list, i: int, end: int, brace_stop: bool = False) -> int:
+    """Mask comments and quoted strings in src[i:end]. With brace_stop, returns
+    just past the '}' that closes a ${...} expression instead of masking it."""
+    depth = 0
+    while i < end:
         ch = src[i]
-        nxt = src[i + 1] if i + 1 < n else ""
+        nxt = src[i + 1] if i + 1 < end else ""
         if ch == "/" and nxt == "/":
-            while i < n and src[i] != "\n":
+            while i < end and src[i] != "\n":
                 out[i] = " "
                 i += 1
             continue
         if ch == "/" and nxt == "*":
             out[i] = out[i + 1] = " "
             i += 2
-            while i < n and not (src[i] == "*" and i + 1 < n and src[i + 1] == "/"):
+            while i < end and not (src[i] == "*" and i + 1 < end and src[i + 1] == "/"):
                 if src[i] != "\n":
                     out[i] = " "
                 i += 1
-            if i < n:
+            if i < end:
                 out[i] = " "
-                if i + 1 < n:
+                if i + 1 < end:
                     out[i + 1] = " "
             i += 2
             continue
-        if ch in ("'", '"', "`"):
+        if ch in ("'", '"'):
             quote = ch
             i += 1
-            while i < n and src[i] != quote:
-                if src[i] == "\\" and i + 1 < n:
+            while i < end and src[i] != quote:
+                if src[i] == "\\" and i + 1 < end:
                     out[i] = " "
                     if src[i + 1] != "\n":
                         out[i + 1] = " "
                     i += 2
                     continue
-                if src[i] == "\n" and quote != "`":
+                if src[i] == "\n":
                     break
                 if src[i] != "\n":
                     out[i] = " "
                 i += 1
             i += 1
             continue
+        if ch == "`":
+            i = _mask_template(src, out, i, end)
+            continue
+        if brace_stop:
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                if depth == 0:
+                    return i + 1
+                depth -= 1
         i += 1
-    return "".join(out)
+    return i
+
+
+def _mask_template(src: str, out: list, i: int, end: int) -> int:
+    """Mask the literal text of a template whose backtick is at i; keep ${...} code."""
+    i += 1
+    while i < end:
+        ch = src[i]
+        if ch == "\\":
+            out[i] = " "
+            if i + 1 < end and src[i + 1] != "\n":
+                out[i + 1] = " "
+            i += 2
+            continue
+        if ch == "`":
+            return i + 1
+        if ch == "$" and i + 1 < end and src[i + 1] == "{":
+            i = _mask_code(src, out, i + 2, end, brace_stop=True)
+            continue
+        if ch != "\n":
+            out[i] = " "
+        i += 1
+    return i
 
 
 def _match_brace(masked: str, open_index: int) -> int:
@@ -178,6 +218,7 @@ _ARROW = re.compile(
 _CONST = re.compile(r"(?m)^(export\s+)?(?:const|let|var)\s+(" + IDENT + r")\s*=\s*")
 _EXPORT_DECL = re.compile(r"\bexport\s+(?:default\s+)?(?:async\s+)?(?:function\s*\*?|class|const|let|var)\s+(" + IDENT + r")")
 _EXPORT_LIST = re.compile(r"\bexport\s*\{([^}]*)\}")
+_EXPORT_DEFAULT = re.compile(r"\bexport\s+default\s+(?:(?:async\s+)?function\s*\*?|class)?\s*(" + IDENT + r")")
 _INSTANCE = re.compile(r"\b(?:const|let|var)\s+(" + IDENT + r")\s*=\s*new\s+(" + IDENT + r")\s*\(")
 _ELEMENT = re.compile(
     r"\b(?:const|let|var)\s+(" + IDENT + r")\s*=\s*document\s*\.\s*"
@@ -219,7 +260,9 @@ class _Module:
         self.ranges: list[tuple[int, int, str]] = []
         self.imports: list[dict] = []
         self.exports: set[str] = set()
-        self.instances: dict[str, str] = {}
+        self.default_export: str | None = None
+        # (var, class name, offset the binding takes effect, enclosing symbol)
+        self.instance_bindings: list[tuple[str, str, int, str | None]] = []
         self.elements: dict[str, dict] = {}
         self.listeners: list[dict] = []
         self.class_ranges: list[tuple[int, int, str]] = []
@@ -281,6 +324,9 @@ class _Module:
         for match in _EXPORT_LIST.finditer(masked):
             for _imported, local in _names_list(match.group(1)):
                 self.exports.add(local)
+        default_match = _EXPORT_DEFAULT.search(masked)
+        if default_match:
+            self.default_export = default_match.group(1)
 
         for match in _CLASS.finditer(masked):
             name = match.group(1)
@@ -344,7 +390,9 @@ class _Module:
             self.add_symbol(name, name, "constant", match.start(), None, close, exported=True)
 
         for match in _INSTANCE.finditer(masked):
-            self.instances[match.group(1)] = match.group(2)
+            self.instance_bindings.append(
+                (match.group(1), match.group(2), match.end(), self.enclosing(match.start()))
+            )
         for match in _ELEMENT.finditer(content):
             if self.visible(match.start()):
                 selector = match.group(3)
@@ -390,6 +438,26 @@ class _Module:
             if start < offset < end:
                 return name
         return None
+
+    def instance_class(self, var: str, offset: int) -> str | None:
+        """Class from the `var = new Class()` binding visible at offset.
+        Prefers the binding in the innermost enclosing scope; a binding in an
+        unrelated scope does not count, so a reused name cannot misdirect calls."""
+        best = None
+        best_key = None
+        for name, class_name, bound, scope in self.instance_bindings:
+            if name != var or bound > offset:
+                continue
+            if scope is None:
+                key = (0, bound)
+            else:
+                span = next((r for r in self.ranges if r[2] == scope), None)
+                if not span or not (span[0] < offset < span[1]):
+                    continue
+                key = (1, -(span[1] - span[0]), bound)
+            if best_key is None or key > best_key:
+                best, best_key = class_name, key
+        return best
 
 
 # --------------------------------------------------------------------------- #
@@ -475,13 +543,28 @@ def build(record: dict, files: list[dict]) -> dict:
         sid = f"{path}#{qualified}"
         return sid if sid in symbols else None
 
+    def resolve_import(path: str, local: str) -> tuple[str, str] | None:
+        """Resolve an imported local name to (target path, exported name).
+        `default` bindings map to the target module's default export
+        declaration when one can be identified."""
+        binding = bindings.get(path, {}).get(local)
+        if not binding:
+            return None
+        target, imported = binding[0], binding[1]
+        if imported == "default":
+            target_module = modules.get(target)
+            if not target_module or not target_module.default_export:
+                return None
+            return target, target_module.default_export
+        return target, imported
+
     def resolve_name(path: str, name: str) -> str | None:
         local = lookup(path, name)
         if local:
             return local
-        binding = bindings.get(path, {}).get(name)
-        if binding and binding[1] not in ("*", "default"):
-            return lookup(binding[0], binding[1])
+        resolved = resolve_import(path, name)
+        if resolved and resolved[1] != "*":
+            return lookup(resolved[0], resolved[1])
         return None
 
     def class_of(path: str, var: str, offset: int) -> tuple[str, str] | None:
@@ -492,21 +575,22 @@ def build(record: dict, files: list[dict]) -> dict:
             if class_name:
                 return path, class_name
             return None
-        if var in module.instances:
-            class_name = module.instances[var]
-        elif lookup(path, var) and symbols[f"{path}#{var}"]["kind"] == "class":
-            class_name = var
-        elif var in bindings.get(path, {}):
-            target, imported, _ = bindings[path][var]
-            if lookup(target, imported) and symbols[f"{target}#{imported}"]["kind"] == "class":
-                return target, imported
+        class_name = module.instance_class(var, offset)
+        if not class_name:
+            if lookup(path, var) and symbols[f"{path}#{var}"]["kind"] == "class":
+                class_name = var
+            else:
+                resolved = resolve_import(path, var)
+                if (resolved and resolved[1] != "*" and lookup(*resolved)
+                        and symbols[f"{resolved[0]}#{resolved[1]}"]["kind"] == "class"):
+                    return resolved
         if not class_name:
             return None
         if lookup(path, class_name):
             return path, class_name
-        binding = bindings.get(path, {}).get(class_name)
-        if binding and lookup(binding[0], binding[1]):
-            return binding[0], binding[1]
+        resolved = resolve_import(path, class_name)
+        if resolved and resolved[1] != "*" and lookup(*resolved):
+            return resolved
         return None
 
     calls: list[dict] = []
@@ -598,6 +682,26 @@ def build(record: dict, files: list[dict]) -> dict:
                         target = lookup(resolved_class[0], f"{resolved_class[1]}.{method}")
                 listener["handler"] = target
 
+        def callback_site(match: re.Match) -> bool:
+            """True when a bare function reference sits where code registers or
+            invokes it: a call's argument list, an object property or ternary
+            branch, or an assignment to a handler-like name. Plain storage
+            (`const saved = draw`) is not an execution step."""
+            start, end_offset = match.start(1), match.end(1)
+            before = masked[max(0, start - 80):start]
+            after = masked[end_offset:end_offset + 40]
+            if re.search(r"\b(?:if|while|for|switch|return|typeof|case|in|of|new)\s*\(?\s*$", before):
+                return False
+            if re.search(r"[(\[,]\s*$", before) and re.match(r"\s*[,)\]};]", after):
+                return True
+            if re.search(r"[:?]\s*$", before) and re.match(r"\s*[,)\]};:]", after):
+                return True
+            lhs = re.search(r"([\w$.]+)\s*=\s*$", before)
+            if lhs and re.search(r"(?:^|[.$_])(on[\w$]+|callbacks?|handlers?|listeners?|cb|fn)$",
+                                 lhs.group(1), re.IGNORECASE):
+                return True
+            return False
+
         for match in _IDENT_REF.finditer(masked):
             name = match.group(1)
             offset = match.start(1)
@@ -621,7 +725,7 @@ def build(record: dict, files: list[dict]) -> dict:
             line = module.lines.line(offset)
             if kind == "constant":
                 add_call(source, target, "reads", path, line)
-            elif kind in ("function", "method"):
+            elif kind in ("function", "method") and callback_site(match):
                 add_call(source, target, "callback", path, line)
 
     # Entry points: event listeners + module setup code.
@@ -853,8 +957,47 @@ def _journey(symbols: dict, calls: list[dict], entries: list[dict], flows: list[
     return {"profile": "point-of-sale", "stages": stages, "links": links}
 
 
+_DOM_READ = re.compile(
+    r"\b(?:closest|matches|querySelector|querySelectorAll|getElementsBy\w+|"
+    r"getAttribute|hasAttribute|addEventListener|contains|compareDocumentPosition)\s*\("
+)
+_DOM_WRITE_MEMBER = (
+    "innerHTML", "outerHTML", "textContent", "innerText", "value", "disabled",
+    "checked", "hidden", "open", "className", "id", "title", "href", "src",
+    "type", "name", "placeholder", "required", "readOnly", "selected", "tabIndex",
+)
+_DOM_WRITE_METHOD = (
+    "setAttribute", "removeAttribute", "toggleAttribute", "appendChild",
+    "append", "prepend", "insertBefore", "insertAdjacentHTML",
+    "insertAdjacentElement", "insertAdjacentText", "replaceChildren",
+    "replaceWith", "before", "after", "remove", "removeChild", "click",
+    "focus", "blur", "scrollIntoView", "showModal", "show", "close",
+    "submit", "reset", "select",
+)
+
+
+def _mutates_element(masked_line: str, var: str) -> bool:
+    """True when the line writes to the element bound to `var` — a property
+    assignment, a mutating method, a nested mutation (classList/dataset/style),
+    inserting it into the DOM or creating it — rather than merely reading it."""
+    ref = r"(?<![\w$])" + re.escape(var) + r"(?![\w$])"
+    if re.search(ref + r"\.(?:" + "|".join(_DOM_WRITE_MEMBER) + r")\s*=(?!=)", masked_line):
+        return True
+    if re.search(ref + r"\.(?:" + "|".join(_DOM_WRITE_METHOD) + r")\s*\(", masked_line):
+        return True
+    if re.search(ref + r"\.(?:classList|dataset|style|attributes)\.", masked_line):
+        return True
+    if re.search(r"\b(?:" + "|".join(_DOM_WRITE_METHOD) + r")\s*\([^)]*" + ref, masked_line):
+        return True
+    if re.search(ref + r"\s*=\s*document\.createElement", masked_line):
+        return True
+    return False
+
+
 def _dom_evidence(prev_ids: set[str], trigger: dict, symbols: dict, modules: dict) -> dict | None:
-    """Show why a user action connects two stages, using real source lines."""
+    """Show why a user action connects two stages, using real source lines.
+    A link is verified only by code that renders the trigger's selector or
+    writes to the listener's element; unrelated reads stay inferred."""
     needles = []
     for selector in trigger.get("selectors") or []:
         attribute = re.match(r"\[([\w-]+)", selector)
@@ -874,12 +1017,14 @@ def _dom_evidence(prev_ids: set[str], trigger: dict, symbols: dict, modules: dic
         if not module or symbol["kind"] == "module":
             continue
         lines = module.content.splitlines()
+        masked_lines = module.masked.splitlines()
         for number in range(symbol["line"], min(symbol["end_line"], len(lines)) + 1):
-            masked_line = module.masked.splitlines()[number - 1] if number - 1 < len(module.masked.splitlines()) else ""
+            masked_line = masked_lines[number - 1] if number - 1 < len(masked_lines) else ""
             for needle, label in needles:
                 text = lines[number - 1]
-                if needle.startswith("data-") and needle in text:
-                    return {"source": sid, "file": symbol["file"], "line": number, "detail": label}
-                if not needle.startswith("data-") and re.search(r"(?<![\w$])" + re.escape(needle) + r"(?![\w$])", masked_line):
+                if needle.startswith("data-"):
+                    if needle in text and not _DOM_READ.search(text):
+                        return {"source": sid, "file": symbol["file"], "line": number, "detail": label}
+                elif _mutates_element(masked_line, needle):
                     return {"source": sid, "file": symbol["file"], "line": number, "detail": label}
     return None
